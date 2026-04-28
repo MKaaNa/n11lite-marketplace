@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: n11_marketplace_postgres
+    environment:
+      POSTGRES_DB: n11_marketplace
+      POSTGRES_USER: n11_dev_user
+      POSTGRES_PASSWORD: n11_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
