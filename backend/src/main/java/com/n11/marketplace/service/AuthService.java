@@ -1,0 +1,114 @@
+package com.n11.marketplace.service;
+
+import com.n11.marketplace.dto.request.LoginRequest;
+import com.n11.marketplace.dto.request.RegisterRequest;
+import com.n11.marketplace.dto.request.VerifyLoginRequest;
+import com.n11.marketplace.dto.response.MessageResponse;
+import com.n11.marketplace.dto.response.UserResponse;
+import com.n11.marketplace.dto.response.VerificationInitResponse;
+import com.n11.marketplace.entity.LoginVerificationCode;
+import com.n11.marketplace.entity.User;
+import com.n11.marketplace.enums.Role;
+import com.n11.marketplace.exception.BusinessException;
+import com.n11.marketplace.repository.LoginVerificationCodeRepository;
+import com.n11.marketplace.repository.UserRepository;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AuthService {
+
+    private static final int CODE_BOUND = 1_000_000;
+
+    private final UserRepository userRepository;
+    private final LoginVerificationCodeRepository loginVerificationCodeRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    public AuthService(
+            UserRepository userRepository,
+            LoginVerificationCodeRepository loginVerificationCodeRepository,
+            PasswordEncoder passwordEncoder,
+            EmailService emailService) {
+        this.userRepository = userRepository;
+        this.loginVerificationCodeRepository = loginVerificationCodeRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
+
+    public MessageResponse register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException("Email already exists", HttpStatus.BAD_REQUEST);
+        }
+
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+        User user = new User(
+                request.getEmail(),
+                passwordHash,
+                request.getFullName(),
+                request.getPhone(),
+                Role.USER);
+
+        userRepository.save(user);
+        emailService.sendWelcomeEmail(request.getEmail(), request.getFullName());
+
+        return new MessageResponse("Registration successful");
+    }
+
+    public VerificationInitResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED);
+        }
+
+        String code = generateVerificationCode();
+        LoginVerificationCode verificationCode = new LoginVerificationCode(
+                user.getEmail(),
+                code,
+                LocalDateTime.now().plusMinutes(5));
+
+        LoginVerificationCode savedVerificationCode = loginVerificationCodeRepository.save(verificationCode);
+        emailService.sendVerificationCodeEmail(user.getEmail(), code);
+
+        return new VerificationInitResponse(savedVerificationCode.getId(), "Verification code sent");
+    }
+
+    public UserResponse verifyLoginCode(VerifyLoginRequest request) {
+        LoginVerificationCode verificationCode = loginVerificationCodeRepository.findById(request.getVerificationId())
+                .orElseThrow(() -> new BusinessException("Invalid verification code", HttpStatus.BAD_REQUEST));
+
+        if (verificationCode.isUsed()) {
+            throw new BusinessException("Verification code already used", HttpStatus.BAD_REQUEST);
+        }
+
+        if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessException("Verification code expired", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!verificationCode.getCode().equals(request.getCode())) {
+            throw new BusinessException("Invalid verification code", HttpStatus.BAD_REQUEST);
+        }
+
+        verificationCode.setUsed(true);
+        loginVerificationCodeRepository.save(verificationCode);
+
+        User user = userRepository.findByEmail(verificationCode.getEmail())
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole().name());
+    }
+
+    private String generateVerificationCode() {
+        return String.format("%06d", secureRandom.nextInt(CODE_BOUND));
+    }
+}
