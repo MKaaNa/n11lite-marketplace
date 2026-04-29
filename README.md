@@ -36,3 +36,11 @@ Local development database:
 - User: `n11_dev_user`
 - Password: `n11_dev_password`
 
+## Local Email Testing
+
+Mailpit is used for local email testing.
+
+- SMTP runs on `localhost:1025`
+- Web inbox is available at http://localhost:8025
+- Register and login verification emails can be checked from the Mailpit UI
+
