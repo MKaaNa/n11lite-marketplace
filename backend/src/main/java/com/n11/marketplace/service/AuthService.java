@@ -116,6 +116,17 @@ public class AuthService {
         return new JwtResponse(token, userResponse);
     }
 
+    public UserResponse getCurrentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole().name());
+    }
+
     private String generateVerificationCode() {
         return String.format("%06d", secureRandom.nextInt(CODE_BOUND));
     }

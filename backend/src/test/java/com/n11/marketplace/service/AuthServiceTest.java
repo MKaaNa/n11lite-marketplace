@@ -211,4 +211,27 @@ class AuthServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(loginVerificationCodeRepository, never()).save(any(LoginVerificationCode.class));
     }
+
+    @Test
+    void getCurrentUserShouldReturnUserResponse() {
+        User user = new User("user@example.com", "encoded-password", "Test User", null, Role.USER);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        var response = authService.getCurrentUser(user.getEmail());
+
+        assertEquals(user.getEmail(), response.getEmail());
+        assertEquals(user.getFullName(), response.getFullName());
+        assertEquals(Role.USER.name(), response.getRole());
+    }
+
+    @Test
+    void getCurrentUserShouldThrowWhenUserMissing() {
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.getCurrentUser("missing@example.com"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+    }
 }
