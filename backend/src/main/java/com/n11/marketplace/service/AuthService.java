@@ -16,13 +16,18 @@ import com.n11.marketplace.repository.UserRepository;
 import com.n11.marketplace.security.JwtUtil;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final int CODE_BOUND = 1_000_000;
 
     private final UserRepository userRepository;
@@ -59,7 +64,11 @@ public class AuthService {
                 Role.USER);
 
         userRepository.save(user);
-        emailService.sendWelcomeEmail(request.getEmail(), request.getFullName());
+        try {
+            emailService.sendWelcomeEmail(request.getEmail(), request.getFullName());
+        } catch (MailException e) {
+            log.warn("Welcome email failed for {}", request.getEmail());
+        }
 
         return new MessageResponse("Registration successful");
     }
@@ -84,6 +93,7 @@ public class AuthService {
         return new VerificationInitResponse(savedVerificationCode.getId(), "Verification code sent");
     }
 
+    @Transactional
     public JwtResponse verifyLoginCode(VerifyLoginRequest request) {
         LoginVerificationCode verificationCode = loginVerificationCodeRepository.findById(request.getVerificationId())
                 .orElseThrow(() -> new BusinessException("Invalid verification code", HttpStatus.BAD_REQUEST));
