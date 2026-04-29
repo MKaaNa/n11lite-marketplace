@@ -21,6 +21,7 @@ public class EmailService {
         log.info("Sending welcome email to {}", email);
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@n11lite.com");
         message.setTo(email);
         message.setSubject("Welcome to N11Lite");
         message.setText("Hello " + fullName + ", welcome to N11Lite.");
@@ -32,6 +33,7 @@ public class EmailService {
         log.info("Sending login verification email to {}", email);
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@n11lite.com");
         message.setTo(email);
         message.setSubject("N11Lite Login Verification Code");
         message.setText("Your login verification code is: " + code);

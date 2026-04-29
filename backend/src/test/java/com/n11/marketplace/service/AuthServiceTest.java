@@ -2,9 +2,11 @@ package com.n11.marketplace.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailSendException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +67,21 @@ class AuthServiceTest {
     }
 
     @Test
+    void registerShouldReturnSuccessWhenWelcomeEmailFails() {
+        RegisterRequest request = new RegisterRequest("user@example.com", "password123", "Test User", "5551112233");
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encoded-password");
+        doThrow(new MailSendException("mail down"))
+                .when(emailService).sendWelcomeEmail(request.getEmail(), request.getFullName());
+
+        MessageResponse response = authService.register(request);
+
+        assertEquals("Registration successful", response.getMessage());
+        verify(userRepository).save(any(User.class));
+        verify(emailService).sendWelcomeEmail(request.getEmail(), request.getFullName());
+    }
+
+    @Test
     void registerShouldSaveUserAndSendWelcomeEmail() {
         RegisterRequest request = new RegisterRequest("user@example.com", "password123", "Test User", "5551112233");
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
@@ -81,6 +99,22 @@ class AuthServiceTest {
         assertEquals(request.getFullName(), savedUser.getFullName());
         assertEquals(Role.USER, savedUser.getRole());
         verify(emailService).sendWelcomeEmail(request.getEmail(), request.getFullName());
+    }
+
+    @Test
+    void loginShouldPropagateMailExceptionWhenVerificationEmailFails() {
+        LoginRequest request = new LoginRequest("user@example.com", "password123");
+        User user = new User(request.getEmail(), "encoded-password", "Test User", null, Role.USER);
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash())).thenReturn(true);
+        when(loginVerificationCodeRepository.save(any(LoginVerificationCode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        doThrow(new MailSendException("mail down"))
+                .when(emailService).sendVerificationCodeEmail(eq(request.getEmail()), matches("\\d{6}"));
+
+        assertThrows(MailSendException.class, () -> authService.login(request));
+
+        verify(loginVerificationCodeRepository).save(any(LoginVerificationCode.class));
     }
 
     @Test
@@ -160,6 +194,7 @@ class AuthServiceTest {
         assertEquals(user.getEmail(), response.getUser().getEmail());
         assertEquals(user.getFullName(), response.getUser().getFullName());
         assertEquals(Role.USER.name(), response.getUser().getRole());
+        assertTrue(verificationCode.isUsed());
         verify(loginVerificationCodeRepository).save(verificationCode);
     }
 
