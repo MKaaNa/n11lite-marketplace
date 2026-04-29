@@ -35,3 +35,6 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-that-is-long-enough-for-hs256-local-only}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}

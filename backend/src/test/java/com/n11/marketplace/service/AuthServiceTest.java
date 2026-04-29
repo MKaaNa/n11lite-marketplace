@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 import com.n11.marketplace.dto.request.LoginRequest;
 import com.n11.marketplace.dto.request.RegisterRequest;
 import com.n11.marketplace.dto.request.VerifyLoginRequest;
+import com.n11.marketplace.dto.response.JwtResponse;
 import com.n11.marketplace.dto.response.MessageResponse;
-import com.n11.marketplace.dto.response.UserResponse;
 import com.n11.marketplace.dto.response.VerificationInitResponse;
 import com.n11.marketplace.entity.LoginVerificationCode;
 import com.n11.marketplace.entity.User;
@@ -21,6 +21,7 @@ import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.repository.LoginVerificationCodeRepository;
 import com.n11.marketplace.repository.UserRepository;
+import com.n11.marketplace.security.JwtUtil;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class AuthServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private JwtUtil jwtUtil;
+
     private AuthService authService;
 
     @BeforeEach
@@ -55,7 +59,8 @@ class AuthServiceTest {
                 userRepository,
                 loginVerificationCodeRepository,
                 passwordEncoder,
-                emailService);
+                emailService,
+                jwtUtil);
     }
 
     @Test
@@ -147,12 +152,14 @@ class AuthServiceTest {
         when(loginVerificationCodeRepository.findById(request.getVerificationId()))
                 .thenReturn(Optional.of(verificationCode));
         when(userRepository.findByEmail(verificationCode.getEmail())).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user)).thenReturn("jwt-token");
 
-        UserResponse response = authService.verifyLoginCode(request);
+        JwtResponse response = authService.verifyLoginCode(request);
 
-        assertEquals(user.getEmail(), response.getEmail());
-        assertEquals(user.getFullName(), response.getFullName());
-        assertEquals(Role.USER.name(), response.getRole());
+        assertEquals("jwt-token", response.getToken());
+        assertEquals(user.getEmail(), response.getUser().getEmail());
+        assertEquals(user.getFullName(), response.getUser().getFullName());
+        assertEquals(Role.USER.name(), response.getUser().getRole());
         verify(loginVerificationCodeRepository).save(verificationCode);
     }
 

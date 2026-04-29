@@ -3,6 +3,7 @@ package com.n11.marketplace.service;
 import com.n11.marketplace.dto.request.LoginRequest;
 import com.n11.marketplace.dto.request.RegisterRequest;
 import com.n11.marketplace.dto.request.VerifyLoginRequest;
+import com.n11.marketplace.dto.response.JwtResponse;
 import com.n11.marketplace.dto.response.MessageResponse;
 import com.n11.marketplace.dto.response.UserResponse;
 import com.n11.marketplace.dto.response.VerificationInitResponse;
@@ -12,6 +13,7 @@ import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.repository.LoginVerificationCodeRepository;
 import com.n11.marketplace.repository.UserRepository;
+import com.n11.marketplace.security.JwtUtil;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
@@ -27,17 +29,20 @@ public class AuthService {
     private final LoginVerificationCodeRepository loginVerificationCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final JwtUtil jwtUtil;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
             UserRepository userRepository,
             LoginVerificationCodeRepository loginVerificationCodeRepository,
             PasswordEncoder passwordEncoder,
-            EmailService emailService) {
+            EmailService emailService,
+            JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.loginVerificationCodeRepository = loginVerificationCodeRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.jwtUtil = jwtUtil;
     }
 
     public MessageResponse register(RegisterRequest request) {
@@ -79,7 +84,7 @@ public class AuthService {
         return new VerificationInitResponse(savedVerificationCode.getId(), "Verification code sent");
     }
 
-    public UserResponse verifyLoginCode(VerifyLoginRequest request) {
+    public JwtResponse verifyLoginCode(VerifyLoginRequest request) {
         LoginVerificationCode verificationCode = loginVerificationCodeRepository.findById(request.getVerificationId())
                 .orElseThrow(() -> new BusinessException("Invalid verification code", HttpStatus.BAD_REQUEST));
 
@@ -101,11 +106,14 @@ public class AuthService {
         User user = userRepository.findByEmail(verificationCode.getEmail())
                 .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
 
-        return new UserResponse(
+        UserResponse userResponse = new UserResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
                 user.getRole().name());
+
+        String token = jwtUtil.generateToken(user);
+        return new JwtResponse(token, userResponse);
     }
 
     private String generateVerificationCode() {
