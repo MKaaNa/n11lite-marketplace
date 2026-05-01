@@ -14,3 +14,7 @@ export function getProducts({ category, search, page = 0, size = 12 }) {
     },
   });
 }
+
+export function getProductBySlug(slug) {
+  return apiClient.get(`/api/products/${slug}`);
+}
