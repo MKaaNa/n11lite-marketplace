@@ -1,53 +1,265 @@
 # N11Lite Marketplace
 
-Sprint 0 monorepo skeleton for an n11-inspired marketplace final project.
+N11Lite Marketplace is a bootcamp final project built as a simple e-commerce app with Spring Boot, React, PostgreSQL, and Docker Compose.
 
-## Backend
+The project focuses on a clean layered backend, a usable React frontend for product/auth/cart flows, and demo-friendly local development tools.
 
-```bash
-cd backend
-./mvnw spring-boot:run
+## Project Purpose
+
+This project simulates a small marketplace flow:
+
+- users can register and log in with email verification
+- products can be listed and viewed in detail
+- authenticated users can manage their cart
+- orders can be created from the cart through the backend API
+- payment can be started and completed through a backend Iyzico sandbox flow
+
+Order and payment frontend screens are not implemented yet. They are available through backend API endpoints and Swagger.
+
+## Tech Stack
+
+Backend:
+
+- Java 21
+- Spring Boot 3
+- Spring Security + JWT
+- Spring Data JPA
+- PostgreSQL
+- Flyway
+- Mailpit for local email testing
+- Iyzico Java SDK
+- Swagger/OpenAPI with springdoc
+- Jib for backend container image builds
+
+Frontend:
+
+- React
+- Vite
+- Axios
+- React Router
+
+DevOps/local tools:
+
+- Docker Compose
+- GitHub Actions
+- Jib
+
+## Core Features
+
+- Product listing
+- Product detail page
+- JWT authentication
+- Email verification login flow
+- Local email testing with Mailpit
+- Shopping cart frontend and backend
+- Order creation backend API
+- Iyzico payment backend flow
+- Swagger/OpenAPI documentation
+- Lightweight backend logging
+- Docker Compose for PostgreSQL and Mailpit
+- GitHub Actions build/test pipeline
+- Deployment plan documentation
+
+## Project Highlights
+
+- Two-step login with email verification code
+- Local Mailpit inbox for welcome and verification emails
+- Backend Iyzico sandbox checkout flow
+- Jib image build without writing a Dockerfile
+- CI/CD and deployment notes for GitHub Actions, Jenkins, AWS Elastic Beanstalk, RDS, and Slack notifications
+
+## Architecture Summary
+
+Backend follows a simple layered structure:
+
+- Controller: HTTP endpoints and request/response handling
+- Service: business logic
+- Repository: database access
+- DTO: request and response models
+- Mapper: explicit entity-to-response mapping
+- Flyway migrations: database schema and seed data
+
+Controllers return DTOs, not entities. Business logic stays in services.
+
+## Local URLs
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Mailpit UI: http://localhost:8025
+
+## Docker Compose Services
+
+Start local PostgreSQL and Mailpit:
+
+```powershell
+docker compose up -d postgres mailpit
 ```
 
-Windows:
+Local database defaults:
+
+- Database: `n11_marketplace`
+- User: `n11_dev_user`
+- Password: `n11_dev_password`
+
+Mailpit:
+
+- SMTP: `localhost:1025`
+- Web inbox: http://localhost:8025
+
+## Backend Setup
 
 ```powershell
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-## Frontend
+Backend runs on:
 
-```bash
+```text
+http://localhost:8080
+```
+
+Swagger/OpenAPI:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+## Frontend Setup
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-## PostgreSQL
+Frontend runs on:
 
-```bash
-docker compose up -d postgres
+```text
+http://localhost:5173
 ```
 
-Local development database:
+## Iyzico Payment Notes
 
-- Database: `n11_marketplace`
-- User: `n11_dev_user`
-- Password: `n11_dev_password`
+The project has a backend Iyzico checkout flow for demo/sandbox usage.
 
-## Local Email Testing
+Iyzico credentials are read from environment variables:
 
-Mailpit is used for local email testing.
+- `IYZICO_API_KEY`
+- `IYZICO_SECRET_KEY`
+- `IYZICO_BASE_URL`
+- `IYZICO_CALLBACK_URL`
 
-- SMTP runs on `localhost:1025`
-- Web inbox is available at http://localhost:8025
-- Register and login verification emails can be checked from the Mailpit UI
+Real production credentials are not stored in the project. If credentials are missing, the app still starts, but payment initiation returns a clear error.
+
+## API Highlights
+
+Public endpoints:
+
+- `GET /api/health`
+- `GET /api/categories`
+- `GET /api/products`
+- `GET /api/products/{slug}`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/verify-login`
+
+Authenticated endpoints:
+
+- `GET /api/auth/me`
+- `GET /api/cart`
+- `POST /api/cart/items`
+- `PUT /api/cart/items/{itemId}`
+- `DELETE /api/cart/items/{itemId}`
+- `DELETE /api/cart/items`
+- `POST /api/orders`
+- `GET /api/orders`
+- `GET /api/orders/{orderId}`
+- `POST /api/payments/orders/{orderId}/checkout`
+- `GET /api/payments/orders/{orderId}`
+
+Payment callback:
+
+- `POST /api/payments/iyzico/callback`
+
+## Demo Flow
+
+1. Start PostgreSQL and Mailpit.
+
+```powershell
+docker compose up -d postgres mailpit
+```
+
+2. Start backend.
+
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run
+```
+
+3. Start frontend.
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+4. Open frontend:
+
+```text
+http://localhost:5173
+```
+
+5. Register a new user.
+6. Check welcome email in Mailpit.
+7. Login with email and password.
+8. Check verification code email in Mailpit.
+9. Verify login with the code.
+10. Browse products and open product detail.
+11. Add product to cart and update cart.
+12. Create order through backend API or Swagger.
+13. Initiate payment through backend API or Swagger.
+14. Use Swagger for API documentation and manual endpoint testing.
+
+## Testing and Build
+
+Backend tests:
+
+```powershell
+cd backend
+.\mvnw.cmd clean test
+```
+
+Frontend production build:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Jib backend image build:
+
+```powershell
+cd backend
+.\mvnw.cmd jib:dockerBuild
+```
 
 ## CI/CD and Deployment
 
-Basic CI/CD and deployment notes are in [docs/deployment.md](docs/deployment.md).
+CI/CD and deployment notes are in [docs/deployment.md](docs/deployment.md).
 
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
-- Mailpit UI: http://localhost:8025
+The project includes:
 
+- GitHub Actions CI for backend tests and frontend build
+- Jib configuration for backend container image builds
+- Deployment plan for AWS Elastic Beanstalk + RDS
+- Jenkins comparison
+- Slack notification plan
+
+This repository does not claim a live AWS deployment. The AWS section is a deployment plan for the final project.
+
+## Development Discipline
+
+The project uses a clean layered architecture with DTO responses instead of returning entities directly. Development was kept in small commits, with backend tests and frontend builds checked before approved commits.

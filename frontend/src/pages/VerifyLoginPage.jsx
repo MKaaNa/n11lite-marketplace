@@ -16,7 +16,7 @@ export default function VerifyLoginPage() {
     setError('');
 
     if (!verificationId || !code) {
-      setError('Verification id and code are required.');
+      setError('Doğrulama numarası ve kod zorunludur.');
       return;
     }
 
@@ -27,8 +27,8 @@ export default function VerifyLoginPage() {
         code,
       });
       navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Verification failed.');
+    } catch {
+      setError('Doğrulama başarısız. Kodu kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -37,25 +37,25 @@ export default function VerifyLoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
-        <p className="eyebrow">Email verification</p>
-        <h1>Verify login</h1>
+        <p className="eyebrow">Email doğrulama</p>
+        <h1>Girişi Doğrula</h1>
 
         {location.state?.email && (
-          <p className="auth-hint">Code sent to {location.state.email}.</p>
+          <p className="auth-hint">Kod {location.state.email} adresine gönderildi.</p>
         )}
 
         {error && <div className="state-message error-message">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            Verification id
+            Doğrulama numarası
             <input
               value={verificationId}
               onChange={(event) => setVerificationId(event.target.value)}
             />
           </label>
           <label>
-            6-digit code
+            6 haneli kod
             <input
               value={code}
               maxLength="6"
@@ -64,12 +64,12 @@ export default function VerifyLoginPage() {
           </label>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Verifying...' : 'Verify login'}
+            {loading ? 'Doğrulanıyor...' : 'Girişi Doğrula'}
           </button>
         </form>
 
         <p className="auth-switch">
-          Need a new code? <Link to="/login">Login again</Link>
+          Yeni kod mu gerekiyor? <Link to="/login">Tekrar giriş yap</Link>
         </p>
       </section>
     </main>

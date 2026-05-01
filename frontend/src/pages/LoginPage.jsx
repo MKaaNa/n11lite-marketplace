@@ -22,7 +22,7 @@ export default function LoginPage() {
     setError('');
 
     if (!form.email || !form.password) {
-      setError('Email and password are required.');
+      setError('Email ve şifre zorunludur.');
       return;
     }
 
@@ -35,8 +35,8 @@ export default function LoginPage() {
           email: form.email,
         },
       });
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed.');
+    } catch {
+      setError('Giriş başarısız. Bilgilerinizi kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -45,8 +45,8 @@ export default function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
-        <p className="eyebrow">Welcome back</p>
-        <h1>Login</h1>
+        <p className="eyebrow">Tekrar hoş geldiniz</p>
+        <h1>Giriş Yap</h1>
 
         {error && <div className="state-message error-message">{error}</div>}
         {location.state?.message && (
@@ -55,22 +55,22 @@ export default function LoginPage() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            Email
+            E-posta
             <input name="email" type="email" value={form.email} onChange={handleChange} />
           </label>
           <label>
-            Password
+            Şifre
             <input name="password" type="password" value={form.password} onChange={handleChange} />
           </label>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Sending code...' : 'Login'}
+            {loading ? 'Kod gönderiliyor...' : 'Giriş Yap'}
           </button>
         </form>
 
-        <p className="auth-hint">A verification code will be sent to your email.</p>
+        <p className="auth-hint">Doğrulama kodu email adresinize gönderilecek.</p>
         <p className="auth-switch">
-          New here? <Link to="/register">Register</Link>
+          Hesabınız yok mu? <Link to="/register">Kayıt Ol</Link>
         </p>
       </section>
     </main>

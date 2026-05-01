@@ -21,7 +21,7 @@ export default function ProductListPage() {
         const response = await getCategories();
         setCategories(response.data);
       } catch {
-        setError('Categories could not be loaded.');
+        setError('Kategoriler yüklenemedi.');
       }
     }
 
@@ -42,7 +42,7 @@ export default function ProductListPage() {
         });
         setProductsPage(response.data);
       } catch {
-        setError('Products could not be loaded.');
+        setError('Ürünler yüklenemedi.');
       } finally {
         setLoading(false);
       }
@@ -69,7 +69,7 @@ export default function ProductListPage() {
       <section className="catalog-header">
         <div>
           <p className="eyebrow">N11Lite Marketplace</p>
-          <h1>Products</h1>
+          <h1>Ürünler</h1>
         </div>
         <SearchBar initialValue={search} onSearch={handleSearch} />
       </section>
@@ -81,10 +81,10 @@ export default function ProductListPage() {
       />
 
       {error && <div className="state-message error-message">{error}</div>}
-      {loading && <div className="state-message">Loading products...</div>}
+      {loading && <div className="state-message">Ürünler yükleniyor...</div>}
 
       {!loading && !error && products.length === 0 && (
-        <div className="state-message">No products found.</div>
+        <div className="state-message">Ürün bulunamadı.</div>
       )}
 
       {!loading && !error && products.length > 0 && (
@@ -101,17 +101,17 @@ export default function ProductListPage() {
               disabled={page === 0}
               onClick={() => setPage((currentPage) => currentPage - 1)}
             >
-              Previous
+              Önceki
             </button>
             <span>
-              Page {productsPage.pageNumber + 1} / {totalPages}
+              Sayfa {productsPage.pageNumber + 1} / {totalPages}
             </span>
             <button
               type="button"
               disabled={productsPage.last}
               onClick={() => setPage((currentPage) => currentPage + 1)}
             >
-              Next
+              Sonraki
             </button>
           </div>
         </>

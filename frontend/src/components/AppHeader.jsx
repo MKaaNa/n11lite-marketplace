@@ -11,22 +11,22 @@ export default function AppHeader() {
       </Link>
 
       <nav className="main-nav">
-        <NavLink to="/">Products</NavLink>
+        <NavLink to="/">Ürünler</NavLink>
 
         {!loading && !user && (
           <>
-            <NavLink to="/login">Login</NavLink>
-            <NavLink to="/register">Register</NavLink>
+            <NavLink to="/login">Giriş Yap</NavLink>
+            <NavLink to="/register">Kayıt Ol</NavLink>
           </>
         )}
 
         {!loading && user && (
           <>
-            <NavLink to="/cart">Cart</NavLink>
+            <NavLink to="/cart">Sepet</NavLink>
             <div className="user-menu">
               <span>{user.fullName || user.email}</span>
               <button type="button" onClick={logout}>
-                Logout
+                Çıkış Yap
               </button>
             </div>
           </>

@@ -28,17 +28,17 @@ export default function RegisterPage() {
     setMessage('');
 
     if (!form.email || !form.password || !form.fullName) {
-      setError('Email, password and full name are required.');
+      setError('Email, şifre ve ad soyad zorunludur.');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await registerUser(form);
-      setMessage(response.message || 'Registration successful.');
+      await registerUser(form);
+      setMessage('Kayıt başarılı. Giriş sayfasına yönlendiriliyorsunuz.');
       setTimeout(() => navigate('/login'), 700);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed.');
+    } catch {
+      setError('Kayıt başarısız. Bilgileri kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -47,37 +47,37 @@ export default function RegisterPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
-        <p className="eyebrow">Create account</p>
-        <h1>Register</h1>
+        <p className="eyebrow">Hesap oluştur</p>
+        <h1>Kayıt Ol</h1>
 
         {error && <div className="state-message error-message">{error}</div>}
         {message && <div className="state-message success-message">{message}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            Full name
+            Ad Soyad
             <input name="fullName" value={form.fullName} onChange={handleChange} />
           </label>
           <label>
-            Email
+            E-posta
             <input name="email" type="email" value={form.email} onChange={handleChange} />
           </label>
           <label>
-            Password
+            Şifre
             <input name="password" type="password" value={form.password} onChange={handleChange} />
           </label>
           <label>
-            Phone
+            Telefon
             <input name="phone" value={form.phone} onChange={handleChange} />
           </label>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? 'Kaydediliyor...' : 'Kayıt Ol'}
           </button>
         </form>
 
         <p className="auth-switch">
-          Already have an account? <Link to="/login">Login</Link>
+          Zaten hesabınız var mı? <Link to="/login">Giriş Yap</Link>
         </p>
       </section>
     </main>
