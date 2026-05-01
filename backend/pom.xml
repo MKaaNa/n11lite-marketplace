@@ -22,6 +22,7 @@
         <springdoc.version>2.8.13</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <iyzipay.version>2.0.141</iyzipay.version>
+        <jib.version>3.4.5</jib.version>
     </properties>
 
     <dependencies>
@@ -110,6 +111,19 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib.version}</version>
+                <configuration>
+                    <from>
+                        <image>eclipse-temurin:21-jre</image>
+                    </from>
+                    <to>
+                        <image>n11lite-marketplace/backend</image>
+                    </to>
                 </configuration>
             </plugin>
         </plugins>
