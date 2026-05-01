@@ -64,6 +64,7 @@ public class AuthService {
                 Role.USER);
 
         userRepository.save(user);
+        log.info("User registered successfully: {}", user.getEmail());
         try {
             emailService.sendWelcomeEmail(request.getEmail(), request.getFullName());
         } catch (MailException e) {
@@ -89,6 +90,7 @@ public class AuthService {
 
         LoginVerificationCode savedVerificationCode = loginVerificationCodeRepository.save(verificationCode);
         emailService.sendVerificationCodeEmail(user.getEmail(), code);
+        log.info("Login verification code sent for {}", user.getEmail());
 
         return new VerificationInitResponse(savedVerificationCode.getId(), "Verification code sent");
     }
@@ -123,6 +125,7 @@ public class AuthService {
                 user.getRole().name());
 
         String token = jwtUtil.generateToken(user);
+        log.info("Login verified successfully for {}", user.getEmail());
         return new JwtResponse(token, userResponse);
     }
 

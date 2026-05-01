@@ -17,12 +17,16 @@ import com.n11.marketplace.repository.OrderRepository;
 import com.n11.marketplace.repository.PaymentRepository;
 import com.n11.marketplace.repository.ProductRepository;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
@@ -66,6 +70,7 @@ public class PaymentService {
         payment.setIyzicoToken(result.getToken());
         payment.setPaymentPageUrl(result.getPaymentPageUrl());
         Payment savedPayment = paymentRepository.save(payment);
+        log.info("Iyzico checkout initiated for order {}, payment {}", order.getId(), savedPayment.getId());
 
         return new InitiatePaymentResponse(
                 order.getId(),
@@ -86,6 +91,7 @@ public class PaymentService {
                 .orElseThrow(() -> new BusinessException("Payment not found", HttpStatus.NOT_FOUND));
 
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
+            log.info("Payment callback received for already completed payment {}", payment.getId());
             return toCallbackResponse(payment, "Payment already completed");
         }
 
@@ -95,6 +101,7 @@ public class PaymentService {
         if (result.isSuccess()) {
             if (!hasEnoughStock(order)) {
                 markFailed(order, payment);
+                log.warn("Payment callback failed because stock is not enough for order {}", order.getId());
                 return toCallbackResponse(payment, "Payment failed because stock is not enough");
             }
 
@@ -105,10 +112,12 @@ public class PaymentService {
             order.setPaymentStatus(PaymentStatus.SUCCESS);
             orderRepository.save(order);
             paymentRepository.save(payment);
+            log.info("Payment callback succeeded for order {}, payment {}", order.getId(), payment.getId());
             return toCallbackResponse(payment, "Payment successful");
         }
 
         markFailed(order, payment);
+        log.warn("Payment callback failed for order {}, payment {}", order.getId(), payment.getId());
         return toCallbackResponse(payment, "Payment failed");
     }
 
@@ -127,6 +136,7 @@ public class PaymentService {
 
     private void checkIyzicoConfigured() {
         if (!iyzicoPaymentClient.isConfigured()) {
+            log.warn("Iyzico payment is not configured");
             throw new BusinessException("Iyzico is not configured", HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
