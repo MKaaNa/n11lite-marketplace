@@ -38,3 +38,9 @@ springdoc:
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-that-is-long-enough-for-hs256-local-only}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+iyzico:
+  api-key: ${IYZICO_API_KEY:}
+  secret-key: ${IYZICO_SECRET_KEY:}
+  base-url: ${IYZICO_BASE_URL:https://sandbox-api.iyzipay.com}
+  callback-url: ${IYZICO_CALLBACK_URL:http://localhost:8080/api/payments/iyzico/callback}
