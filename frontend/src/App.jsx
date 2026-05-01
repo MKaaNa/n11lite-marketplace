@@ -1,10 +1,10 @@
 import { Route, Routes } from 'react-router-dom';
-import Home from './pages/Home.jsx';
+import ProductListPage from './pages/ProductListPage.jsx';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<ProductListPage />} />
     </Routes>
   );
 }
