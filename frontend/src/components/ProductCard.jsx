@@ -27,13 +27,13 @@ export default function ProductCard({ product }) {
           <Link to={`/products/${product.slug}`}>{product.name}</Link>
         </h2>
         <p className="product-price">{formatPrice(product.price)}</p>
-        <p className="product-stock">Stock: {product.stock}</p>
+        <p className="product-stock">Stok: {product.stock}</p>
         <p className="product-store">
           {product.store?.name}
-          {product.store?.official && <span className="official-store">Official</span>}
+          {product.store?.official && <span className="official-store">Resmi Mağaza</span>}
         </p>
         <Link className="details-link" to={`/products/${product.slug}`}>
-          View details
+          Detayları Gör
         </Link>
       </div>
     </article>

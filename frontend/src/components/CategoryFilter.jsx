@@ -6,7 +6,7 @@ export default function CategoryFilter({ categories, selectedCategory, onSelectC
         className={!selectedCategory ? 'filter-button active' : 'filter-button'}
         onClick={() => onSelectCategory('')}
       >
-        All
+        Tümü
       </button>
 
       {categories.map((category) => (

@@ -13,10 +13,10 @@ export default function SearchBar({ initialValue = '', onSearch }) {
       <input
         type="search"
         value={value}
-        placeholder="Search products"
+        placeholder="Ürün ara"
         onChange={(event) => setValue(event.target.value)}
       />
-      <button type="submit">Search</button>
+      <button type="submit">Ara</button>
     </form>
   );
 }

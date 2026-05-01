@@ -40,7 +40,7 @@ export default function ProductDetailPage() {
         setQuantity(1);
       } catch {
         setProduct(null);
-        setError('Product could not be found.');
+        setError('Ürün bulunamadı.');
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export default function ProductDetailPage() {
     if (!user) {
       navigate('/login', {
         state: {
-          message: 'Please login before adding products to cart.',
+          message: 'Sepete ürün eklemek için önce giriş yapmalısınız.',
         },
       });
       return;
@@ -79,9 +79,9 @@ export default function ProductDetailPage() {
     try {
       setCartLoading(true);
       await addToCart(product.id, quantity);
-      setCartMessage('Product added to cart.');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Product could not be added to cart.');
+      setCartMessage('Ürün sepete eklendi.');
+    } catch {
+      setError('Ürün sepete eklenemedi.');
     } finally {
       setCartLoading(false);
     }
@@ -94,10 +94,10 @@ export default function ProductDetailPage() {
   return (
     <main className="catalog-page">
       <Link className="back-link" to="/">
-        Back to products
+        Ürünlere dön
       </Link>
 
-      {loading && <div className="state-message">Loading product...</div>}
+      {loading && <div className="state-message">Ürün yükleniyor...</div>}
       {error && <div className="state-message error-message">{error}</div>}
       {cartMessage && <div className="state-message success-message">{cartMessage}</div>}
 
@@ -130,9 +130,9 @@ export default function ProductDetailPage() {
             <p className="detail-description">{product.description}</p>
 
             <div className="detail-meta">
-              <span>Stock: {product.stock}</span>
-              <span>Sold: {product.soldCount}</span>
-              <span>Views: {product.viewCount}</span>
+              <span>Stok: {product.stock}</span>
+              <span>Satılan: {product.soldCount}</span>
+              <span>Görüntülenme: {product.viewCount}</span>
             </div>
 
             <div className="add-cart-panel">
@@ -155,17 +155,17 @@ export default function ProductDetailPage() {
                 onClick={handleAddToCart}
                 disabled={cartLoading || product.stock <= 0}
               >
-                {cartLoading ? 'Adding...' : 'Add to cart'}
+                {cartLoading ? 'Ekleniyor...' : 'Sepete Ekle'}
               </button>
             </div>
 
             <div className="store-panel">
-              <p className="store-label">Store</p>
+              <p className="store-label">Mağaza</p>
               <p className="store-name">
                 {product.store?.name}
-                {product.store?.official && <span className="official-store">Official</span>}
+                {product.store?.official && <span className="official-store">Resmi Mağaza</span>}
               </p>
-              {product.store?.rating && <p className="store-rating">Rating: {product.store.rating}</p>}
+              {product.store?.rating && <p className="store-rating">Puan: {product.store.rating}</p>}
             </div>
           </div>
         </section>

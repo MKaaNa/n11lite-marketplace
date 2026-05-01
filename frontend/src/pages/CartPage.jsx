@@ -30,7 +30,7 @@ export default function CartPage() {
       const response = await getCart();
       setCart(response.data);
     } catch {
-      setError('Cart could not be loaded.');
+      setError('Sepet yüklenemedi.');
     } finally {
       setLoading(false);
     }
@@ -48,8 +48,8 @@ export default function CartPage() {
     try {
       const response = await updateCartItem(item.id, quantity);
       setCart(response.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Quantity could not be updated.');
+    } catch {
+      setError('Adet güncellenemedi.');
     } finally {
       setUpdating(false);
     }
@@ -63,9 +63,9 @@ export default function CartPage() {
     try {
       const response = await removeCartItem(itemId);
       setCart(response.data);
-      setMessage('Item removed from cart.');
+      setMessage('Ürün sepetten kaldırıldı.');
     } catch {
-      setError('Item could not be removed.');
+      setError('Ürün sepetten kaldırılamadı.');
     } finally {
       setUpdating(false);
     }
@@ -79,9 +79,9 @@ export default function CartPage() {
     try {
       const response = await clearCart();
       setCart(response.data);
-      setMessage('Cart cleared.');
+      setMessage('Sepet temizlendi.');
     } catch {
-      setError('Cart could not be cleared.');
+      setError('Sepet temizlenemedi.');
     } finally {
       setUpdating(false);
     }
@@ -93,21 +93,21 @@ export default function CartPage() {
     <main className="catalog-page">
       <section className="cart-header">
         <div>
-          <p className="eyebrow">Shopping cart</p>
-          <h1>My Cart</h1>
+          <p className="eyebrow">Alışveriş sepeti</p>
+          <h1>Sepetim</h1>
         </div>
         <Link className="details-link" to="/">
-          Continue shopping
+          Alışverişe Devam Et
         </Link>
       </section>
 
-      {loading && <div className="state-message">Loading cart...</div>}
+      {loading && <div className="state-message">Sepet yükleniyor...</div>}
       {error && <div className="state-message error-message">{error}</div>}
       {message && <div className="state-message success-message">{message}</div>}
 
       {!loading && items.length === 0 && (
         <div className="state-message">
-          Your cart is empty. <Link to="/">Browse products</Link>
+          Sepetiniz boş. <Link to="/">Ürünlere göz atın</Link>
         </div>
       )}
 
@@ -125,7 +125,7 @@ export default function CartPage() {
                 <div className="cart-item-info">
                   <Link to={`/products/${item.productSlug}`}>{item.productName}</Link>
                   {item.storeName && <p>{item.storeName}</p>}
-                  <p>Unit price: {formatPrice(item.unitPrice)}</p>
+                  <p>Birim fiyat: {formatPrice(item.unitPrice)}</p>
                 </div>
 
                 <div className="quantity-controls">
@@ -153,17 +153,17 @@ export default function CartPage() {
                   disabled={updating}
                   onClick={() => handleRemove(item.id)}
                 >
-                  Remove
+                  Kaldır
                 </button>
               </article>
             ))}
           </div>
 
           <aside className="cart-summary">
-            <h2>Summary</h2>
-            <p>Total: {formatPrice(cart.totalAmount)}</p>
+            <h2>Özet</h2>
+            <p>Toplam: {formatPrice(cart.totalAmount)}</p>
             <button type="button" disabled={updating} onClick={handleClearCart}>
-              Clear cart
+              Sepeti Temizle
             </button>
           </aside>
         </section>
