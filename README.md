@@ -44,3 +44,10 @@ Mailpit is used for local email testing.
 - Web inbox is available at http://localhost:8025
 - Register and login verification emails can be checked from the Mailpit UI
 
+## CI/CD and Deployment
+
+Basic CI/CD and deployment notes are in [docs/deployment.md](docs/deployment.md).
+
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Mailpit UI: http://localhost:8025
+
