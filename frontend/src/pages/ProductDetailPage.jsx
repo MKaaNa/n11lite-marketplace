@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { getProductBySlug } from '../api/catalogApi';
+
+const FALLBACK_IMAGE = 'https://placehold.co/600x600?text=N11Lite';
+
+function formatPrice(price) {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: 'TRY',
+  }).format(price);
+}
+
+export default function ProductDetailPage() {
+  const { slug } = useParams();
+  const [product, setProduct] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(FALLBACK_IMAGE);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function loadProduct() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await getProductBySlug(slug);
+        const productData = response.data;
+        const firstImage = productData.images?.[0]?.imageUrl || FALLBACK_IMAGE;
+
+        setProduct(productData);
+        setSelectedImage(firstImage);
+      } catch {
+        setProduct(null);
+        setError('Product could not be found.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProduct();
+  }, [slug]);
+
+  const images = product?.images?.length ? product.images : [
+    { id: 'fallback', imageUrl: FALLBACK_IMAGE, displayOrder: 1 },
+  ];
+
+  return (
+    <main className="catalog-page">
+      <Link className="back-link" to="/">
+        Back to products
+      </Link>
+
+      {loading && <div className="state-message">Loading product...</div>}
+      {error && <div className="state-message error-message">{error}</div>}
+
+      {!loading && !error && product && (
+        <section className="product-detail">
+          <div className="gallery">
+            <div className="main-image-wrap">
+              {product.badge && <span className="product-badge">{product.badge}</span>}
+              <img src={selectedImage} alt={product.name} className="main-image" />
+            </div>
+
+            <div className="thumbnail-list">
+              {images.map((image) => (
+                <button
+                  type="button"
+                  key={image.id}
+                  className={selectedImage === image.imageUrl ? 'thumbnail active' : 'thumbnail'}
+                  onClick={() => setSelectedImage(image.imageUrl)}
+                >
+                  <img src={image.imageUrl} alt={`${product.name} ${image.displayOrder}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="detail-info">
+            <p className="product-category">{product.category?.name}</p>
+            <h1>{product.name}</h1>
+            <p className="detail-price">{formatPrice(product.price)}</p>
+            <p className="detail-description">{product.description}</p>
+
+            <div className="detail-meta">
+              <span>Stock: {product.stock}</span>
+              <span>Sold: {product.soldCount}</span>
+              <span>Views: {product.viewCount}</span>
+            </div>
+
+            <div className="store-panel">
+              <p className="store-label">Store</p>
+              <p className="store-name">
+                {product.store?.name}
+                {product.store?.official && <span className="official-store">Official</span>}
+              </p>
+              {product.store?.rating && <p className="store-rating">Rating: {product.store.rating}</p>}
+            </div>
+          </div>
+        </section>
+      )}
+    </main>
+  );
+}
