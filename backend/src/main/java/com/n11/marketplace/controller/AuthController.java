@@ -8,6 +8,8 @@ import com.n11.marketplace.dto.response.MessageResponse;
 import com.n11.marketplace.dto.response.UserResponse;
 import com.n11.marketplace.dto.response.VerificationInitResponse;
 import com.n11.marketplace.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication")
 public class AuthController {
 
     private final AuthService authService;
@@ -28,21 +31,25 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Register a new user")
     public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Start login verification")
     public ResponseEntity<VerificationInitResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/verify-login")
+    @Operation(summary = "Verify login code")
     public ResponseEntity<JwtResponse> verifyLogin(@Valid @RequestBody VerifyLoginRequest request) {
         return ResponseEntity.ok(authService.verifyLoginCode(request));
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get current user")
     public ResponseEntity<UserResponse> me(Principal principal) {
         return ResponseEntity.ok(authService.getCurrentUser(principal.getName()));
     }

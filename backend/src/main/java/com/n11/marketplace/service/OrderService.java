@@ -15,12 +15,16 @@ import com.n11.marketplace.repository.OrderRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
@@ -70,6 +74,7 @@ public class OrderService {
 
         order.setTotalAmount(totalAmount);
         Order savedOrder = orderRepository.save(order);
+        log.info("Order created for user {}, order {}, total {}", userEmail, savedOrder.getId(), savedOrder.getTotalAmount());
         return orderMapper.toResponse(savedOrder);
     }
 

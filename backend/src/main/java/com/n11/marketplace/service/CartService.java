@@ -13,12 +13,16 @@ import com.n11.marketplace.repository.CartItemRepository;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.ProductRepository;
 import com.n11.marketplace.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CartService {
+
+    private static final Logger log = LoggerFactory.getLogger(CartService.class);
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
@@ -66,6 +70,7 @@ public class CartService {
         }
 
         cartRepository.save(cart);
+        log.info("Cart item added for user {}, product {}, quantity {}", userEmail, product.getId(), item.getQuantity());
         return cartMapper.toResponse(cart);
     }
 
@@ -77,6 +82,7 @@ public class CartService {
         checkStock(request.getQuantity(), item.getProduct().getStock());
         item.setQuantity(request.getQuantity());
         cartItemRepository.save(item);
+        log.info("Cart item updated for user {}, item {}, quantity {}", userEmail, itemId, item.getQuantity());
 
         return cartMapper.toResponse(cart);
     }
@@ -88,6 +94,7 @@ public class CartService {
 
         cart.removeItem(item);
         cartRepository.save(cart);
+        log.info("Cart item removed for user {}, item {}", userEmail, itemId);
 
         return cartMapper.toResponse(cart);
     }
@@ -97,6 +104,7 @@ public class CartService {
         Cart cart = findCartByUserEmail(userEmail);
         cart.getItems().clear();
         cartRepository.save(cart);
+        log.info("Cart cleared for user {}", userEmail);
 
         return cartMapper.toResponse(cart);
     }
