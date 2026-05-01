@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { addToCart } from '../api/cartApi';
 import { getProductBySlug } from '../api/catalogApi';
+import { useAuth } from '../context/AuthContext';
 
 const FALLBACK_IMAGE = 'https://placehold.co/600x600?text=N11Lite';
 
@@ -13,10 +15,15 @@ function formatPrice(price) {
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(FALLBACK_IMAGE);
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [cartLoading, setCartLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cartMessage, setCartMessage] = useState('');
 
   useEffect(() => {
     async function loadProduct() {
@@ -30,6 +37,7 @@ export default function ProductDetailPage() {
 
         setProduct(productData);
         setSelectedImage(firstImage);
+        setQuantity(1);
       } catch {
         setProduct(null);
         setError('Product could not be found.');
@@ -40,6 +48,44 @@ export default function ProductDetailPage() {
 
     loadProduct();
   }, [slug]);
+
+  function decreaseQuantity() {
+    setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
+  }
+
+  function increaseQuantity() {
+    setQuantity((currentQuantity) => {
+      if (product?.stock) {
+        return Math.min(product.stock, currentQuantity + 1);
+      }
+
+      return currentQuantity + 1;
+    });
+  }
+
+  async function handleAddToCart() {
+    setCartMessage('');
+    setError('');
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          message: 'Please login before adding products to cart.',
+        },
+      });
+      return;
+    }
+
+    try {
+      setCartLoading(true);
+      await addToCart(product.id, quantity);
+      setCartMessage('Product added to cart.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Product could not be added to cart.');
+    } finally {
+      setCartLoading(false);
+    }
+  }
 
   const images = product?.images?.length ? product.images : [
     { id: 'fallback', imageUrl: FALLBACK_IMAGE, displayOrder: 1 },
@@ -53,6 +99,7 @@ export default function ProductDetailPage() {
 
       {loading && <div className="state-message">Loading product...</div>}
       {error && <div className="state-message error-message">{error}</div>}
+      {cartMessage && <div className="state-message success-message">{cartMessage}</div>}
 
       {!loading && !error && product && (
         <section className="product-detail">
@@ -86,6 +133,30 @@ export default function ProductDetailPage() {
               <span>Stock: {product.stock}</span>
               <span>Sold: {product.soldCount}</span>
               <span>Views: {product.viewCount}</span>
+            </div>
+
+            <div className="add-cart-panel">
+              <div className="quantity-controls">
+                <button type="button" onClick={decreaseQuantity} disabled={quantity <= 1}>
+                  -
+                </button>
+                <span>{quantity}</span>
+                <button
+                  type="button"
+                  onClick={increaseQuantity}
+                  disabled={product.stock && quantity >= product.stock}
+                >
+                  +
+                </button>
+              </div>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleAddToCart}
+                disabled={cartLoading || product.stock <= 0}
+              >
+                {cartLoading ? 'Adding...' : 'Add to cart'}
+              </button>
             </div>
 
             <div className="store-panel">

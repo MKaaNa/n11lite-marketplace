@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const { startLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,6 +49,9 @@ export default function LoginPage() {
         <h1>Login</h1>
 
         {error && <div className="state-message error-message">{error}</div>}
+        {location.state?.message && (
+          <div className="state-message">{location.state.message}</div>
+        )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>

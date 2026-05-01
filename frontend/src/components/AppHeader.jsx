@@ -21,12 +21,15 @@ export default function AppHeader() {
         )}
 
         {!loading && user && (
-          <div className="user-menu">
-            <span>{user.fullName || user.email}</span>
-            <button type="button" onClick={logout}>
-              Logout
-            </button>
-          </div>
+          <>
+            <NavLink to="/cart">Cart</NavLink>
+            <div className="user-menu">
+              <span>{user.fullName || user.email}</span>
+              <button type="button" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          </>
         )}
       </nav>
     </header>
