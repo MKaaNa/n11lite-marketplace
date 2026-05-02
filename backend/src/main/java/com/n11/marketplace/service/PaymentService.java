@@ -33,18 +33,21 @@ public class PaymentService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final IyzicoPaymentClient iyzicoPaymentClient;
+    private final CouponService couponService;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             OrderRepository orderRepository,
             CartRepository cartRepository,
             ProductRepository productRepository,
-            IyzicoPaymentClient iyzicoPaymentClient) {
+            IyzicoPaymentClient iyzicoPaymentClient,
+            CouponService couponService) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
         this.iyzicoPaymentClient = iyzicoPaymentClient;
+        this.couponService = couponService;
     }
 
     @Transactional
@@ -107,6 +110,7 @@ public class PaymentService {
 
             decreaseStock(order);
             clearUserCart(order);
+            couponService.markCouponUsed(order.getCouponCode());
             payment.setStatus(PaymentStatus.SUCCESS);
             order.setStatus(OrderStatus.PAID);
             order.setPaymentStatus(PaymentStatus.SUCCESS);

@@ -11,6 +11,8 @@ public class OrderResponse {
     private String paymentStatus;
     private String shippingAddress;
     private BigDecimal totalAmount;
+    private String couponCode;
+    private BigDecimal discountAmount;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
 
@@ -24,6 +26,20 @@ public class OrderResponse {
         this.paymentStatus = paymentStatus;
         this.shippingAddress = shippingAddress;
         this.totalAmount = totalAmount;
+        this.createdAt = createdAt;
+        this.items = items;
+    }
+
+    public OrderResponse(Long id, String status, String paymentStatus, String shippingAddress,
+            BigDecimal totalAmount, String couponCode, BigDecimal discountAmount,
+            LocalDateTime createdAt, List<OrderItemResponse> items) {
+        this.id = id;
+        this.status = status;
+        this.paymentStatus = paymentStatus;
+        this.shippingAddress = shippingAddress;
+        this.totalAmount = totalAmount;
+        this.couponCode = couponCode;
+        this.discountAmount = discountAmount;
         this.createdAt = createdAt;
         this.items = items;
     }
@@ -66,6 +82,22 @@ public class OrderResponse {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getCouponCode() {
+        return couponCode;
+    }
+
+    public void setCouponCode(String couponCode) {
+        this.couponCode = couponCode;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
     }
 
     public LocalDateTime getCreatedAt() {

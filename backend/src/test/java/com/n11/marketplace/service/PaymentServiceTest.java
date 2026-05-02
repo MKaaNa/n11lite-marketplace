@@ -55,6 +55,9 @@ class PaymentServiceTest {
     @Mock
     private IyzicoPaymentClient iyzicoPaymentClient;
 
+    @Mock
+    private CouponService couponService;
+
     private PaymentService paymentService;
 
     @BeforeEach
@@ -64,7 +67,8 @@ class PaymentServiceTest {
                 orderRepository,
                 cartRepository,
                 productRepository,
-                iyzicoPaymentClient);
+                iyzicoPaymentClient,
+                couponService);
     }
 
     @Test
@@ -198,6 +202,24 @@ class PaymentServiceTest {
     }
 
     @Test
+    void successfulCallbackIncrementsCouponUsedCount() {
+        User user = createUser();
+        Product product = createProduct(10L, 5);
+        Order order = createOrder(50L, user, product, 2);
+        order.setCouponCode("N11WELCOME");
+        Payment payment = createPayment(80L, order, "checkout-token");
+        when(iyzicoPaymentClient.isConfigured()).thenReturn(true);
+        when(paymentRepository.findByIyzicoToken("checkout-token")).thenReturn(Optional.of(payment));
+        when(iyzicoPaymentClient.retrieveCheckoutResult("checkout-token")).thenReturn(
+                new IyzicoPaymentClient.CheckoutResult(true, "SUCCESS", null));
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.empty());
+
+        paymentService.handleCallback("checkout-token");
+
+        verify(couponService).markCouponUsed("N11WELCOME");
+    }
+
+    @Test
     void failedCallbackMarksPaymentFailedAndOrderFailed() {
         User user = createUser();
         Product product = createProduct(10L, 5);
@@ -248,6 +270,39 @@ class PaymentServiceTest {
         paymentService.handleCallback("checkout-token");
 
         verify(cartRepository, never()).save(any(Cart.class));
+    }
+
+    @Test
+    void failedCallbackDoesNotIncrementCouponUsedCount() {
+        User user = createUser();
+        Product product = createProduct(10L, 5);
+        Order order = createOrder(50L, user, product, 2);
+        order.setCouponCode("N11WELCOME");
+        Payment payment = createPayment(80L, order, "checkout-token");
+        when(iyzicoPaymentClient.isConfigured()).thenReturn(true);
+        when(paymentRepository.findByIyzicoToken("checkout-token")).thenReturn(Optional.of(payment));
+        when(iyzicoPaymentClient.retrieveCheckoutResult("checkout-token")).thenReturn(
+                new IyzicoPaymentClient.CheckoutResult(false, "FAILURE", "failed"));
+
+        paymentService.handleCallback("checkout-token");
+
+        verify(couponService, never()).markCouponUsed("N11WELCOME");
+    }
+
+    @Test
+    void alreadySuccessfulCallbackDoesNotIncrementCouponAgain() {
+        User user = createUser();
+        Product product = createProduct(10L, 5);
+        Order order = createOrder(50L, user, product, 2);
+        order.setCouponCode("N11WELCOME");
+        Payment payment = createPayment(80L, order, "checkout-token");
+        payment.setStatus(PaymentStatus.SUCCESS);
+        when(iyzicoPaymentClient.isConfigured()).thenReturn(true);
+        when(paymentRepository.findByIyzicoToken("checkout-token")).thenReturn(Optional.of(payment));
+
+        paymentService.handleCallback("checkout-token");
+
+        verify(couponService, never()).markCouponUsed("N11WELCOME");
     }
 
     @Test

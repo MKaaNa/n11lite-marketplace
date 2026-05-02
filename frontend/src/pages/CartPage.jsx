@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clearCart, getCart, removeCartItem, updateCartItem } from '../api/cartApi';
+import { validateCoupon } from '../api/couponApi';
 
 const FALLBACK_IMAGE = 'https://placehold.co/300x300?text=N11Lite';
 
@@ -17,6 +18,8 @@ export default function CartPage() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   useEffect(() => {
     loadCart();
@@ -29,11 +32,22 @@ export default function CartPage() {
     try {
       const response = await getCart();
       setCart(response.data);
+      setAppliedCoupon(null);
     } catch {
       setError('Sepet yüklenemedi.');
     } finally {
       setLoading(false);
     }
+  }
+
+  function clearCouponAfterCartChange() {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setMessage('Sepet değiştiği için kupon tekrar uygulanmalı.');
+      return true;
+    }
+
+    return false;
   }
 
   async function handleQuantityChange(item, quantity) {
@@ -48,6 +62,7 @@ export default function CartPage() {
     try {
       const response = await updateCartItem(item.id, quantity);
       setCart(response.data);
+      clearCouponAfterCartChange();
     } catch {
       setError('Adet güncellenemedi.');
     } finally {
@@ -63,7 +78,9 @@ export default function CartPage() {
     try {
       const response = await removeCartItem(itemId);
       setCart(response.data);
-      setMessage('Ürün sepetten kaldırıldı.');
+      if (!clearCouponAfterCartChange()) {
+        setMessage('Ürün sepetten kaldırıldı.');
+      }
     } catch {
       setError('Ürün sepetten kaldırılamadı.');
     } finally {
@@ -79,6 +96,8 @@ export default function CartPage() {
     try {
       const response = await clearCart();
       setCart(response.data);
+      setAppliedCoupon(null);
+      setCouponCode('');
       setMessage('Sepet temizlendi.');
     } catch {
       setError('Sepet temizlenemedi.');
@@ -87,7 +106,39 @@ export default function CartPage() {
     }
   }
 
+  async function handleApplyCoupon(event) {
+    event.preventDefault();
+
+    if (!couponCode.trim()) {
+      setError('Kupon kodu girmelisin.');
+      return;
+    }
+
+    setUpdating(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await validateCoupon(couponCode.trim(), cart.totalAmount);
+      setAppliedCoupon(response.data);
+      setCouponCode(response.data.code);
+      setMessage('Kupon uygulandı.');
+    } catch (err) {
+      setAppliedCoupon(null);
+      setError(err.response?.data?.message || 'Kupon uygulanamadı.');
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setMessage('Kupon kaldırıldı.');
+  }
+
   const items = cart?.items || [];
+  const finalTotal = appliedCoupon?.finalTotal ?? cart?.totalAmount;
 
   return (
     <main className="catalog-page">
@@ -162,6 +213,38 @@ export default function CartPage() {
           <aside className="cart-summary">
             <h2>Özet</h2>
             <p>Toplam: {formatPrice(cart.totalAmount)}</p>
+
+            <form className="coupon-form" onSubmit={handleApplyCoupon}>
+              <label htmlFor="couponCode">Kupon Kodu</label>
+              <div className="coupon-input-row">
+                <input
+                  id="couponCode"
+                  type="text"
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value)}
+                  placeholder="N11WELCOME"
+                  disabled={updating}
+                />
+                <button type="submit" disabled={updating}>
+                  Kuponu Uygula
+                </button>
+              </div>
+            </form>
+
+            {appliedCoupon && (
+              <div className="coupon-result">
+                <p>İndirim: -{formatPrice(appliedCoupon.discountAmount)}</p>
+                <p>Ödenecek Tutar: {formatPrice(finalTotal)}</p>
+                <button type="button" disabled={updating} onClick={handleRemoveCoupon}>
+                  Kuponu Kaldır
+                </button>
+              </div>
+            )}
+
+            <p className="checkout-note">
+              Sipariş ve ödeme adımı Swagger/API üzerinden tamamlanabilir.
+            </p>
+
             <button type="button" disabled={updating} onClick={handleClearCart}>
               Sepeti Temizle
             </button>
