@@ -634,3 +634,80 @@ button:disabled {
   }
 }
 
+/* Admin panel */
+.admin-orders-table-wrapper {
+  overflow-x: auto;
+  padding: 0 max(16px, calc((100% - 1180px) / 2));
+  margin-top: 24px;
+}
+
+.admin-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.admin-orders-table th,
+.admin-orders-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-orders-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.admin-orders-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-orders-table tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-order-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-action-btn {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-action-btn:hover:not(:disabled) {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.admin-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-action-cancel {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.admin-action-cancel:hover:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+}
+

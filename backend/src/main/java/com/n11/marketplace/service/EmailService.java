@@ -29,6 +29,30 @@ public class EmailService {
         javaMailSender.send(message);
     }
 
+    public void sendOrderShippedEmail(String email, Long orderId) {
+        log.info("Sending shipped email for order {} to {}", orderId, email);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@n11lite.com");
+        message.setTo(email);
+        message.setSubject("N11Lite - Siparişiniz Kargoya Verildi");
+        message.setText("Siparişiniz (" + orderId + ") kargoya verildi. İyi alışverişler!");
+
+        javaMailSender.send(message);
+    }
+
+    public void sendOrderDeliveredEmail(String email, Long orderId) {
+        log.info("Sending delivered email for order {} to {}", orderId, email);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@n11lite.com");
+        message.setTo(email);
+        message.setSubject("N11Lite - Siparişiniz Teslim Edildi");
+        message.setText("Siparişiniz (" + orderId + ") teslim edildi. Teşekkür ederiz!");
+
+        javaMailSender.send(message);
+    }
+
     public void sendVerificationCodeEmail(String email, String code) {
         log.info("Sending login verification email to {}", email);
 

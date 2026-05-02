@@ -1,12 +1,14 @@
 import { Route, Routes } from 'react-router-dom';
 import AppHeader from './components/AppHeader.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import AdminRoute from './components/AdminRoute.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import ProductListPage from './pages/ProductListPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import VerifyLoginPage from './pages/VerifyLoginPage.jsx';
 import CartPage from './pages/CartPage.jsx';
+import AdminOrdersPage from './pages/AdminOrdersPage.jsx';
 
 export default function App() {
   return (
@@ -24,6 +26,14 @@ export default function App() {
             <ProtectedRoute>
               <CartPage />
             </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/orders"
+          element={(
+            <AdminRoute>
+              <AdminOrdersPage />
+            </AdminRoute>
           )}
         />
       </Routes>

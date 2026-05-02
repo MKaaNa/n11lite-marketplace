@@ -88,6 +88,21 @@ Controllers return DTOs, not entities. Business logic stays in services.
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
 - Mailpit UI: http://localhost:8025
 
+## Admin Demo User
+
+Local demo admin panel:
+
+```text
+http://localhost:5173/admin/orders
+```
+
+Local demo admin credentials only:
+
+```text
+email: admin@n11lite.com
+password: N11LiteAdmin2026!
+```
+
 ## Docker Compose Services
 
 Start local PostgreSQL and Mailpit:
