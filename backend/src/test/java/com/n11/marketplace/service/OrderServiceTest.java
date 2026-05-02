@@ -12,10 +12,12 @@ import com.n11.marketplace.dto.response.OrderResponse;
 import com.n11.marketplace.entity.Cart;
 import com.n11.marketplace.entity.CartItem;
 import com.n11.marketplace.entity.Category;
+import com.n11.marketplace.entity.Coupon;
 import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.Store;
 import com.n11.marketplace.entity.User;
+import com.n11.marketplace.enums.DiscountType;
 import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.mapper.OrderMapper;
@@ -45,11 +47,14 @@ class OrderServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private CouponService couponService;
+
     private OrderService orderService;
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, cartRepository, userRepository, new OrderMapper());
+        orderService = new OrderService(orderRepository, cartRepository, userRepository, new OrderMapper(), couponService);
     }
 
     @Test
@@ -80,6 +85,70 @@ class OrderServiceTest {
         assertEquals(new BigDecimal("100.00"), response.getItems().get(0).getUnitPrice());
         assertEquals(2, response.getItems().get(0).getQuantity());
         verify(orderRepository).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderWithCouponAppliesDiscount() {
+        User user = createUser("user@test.com");
+        Product product = createProduct(10L, 5);
+        Cart cart = createCart(1L, user);
+        Coupon coupon = new Coupon("N11WELCOME", DiscountType.PERCENT, new BigDecimal("10.00"));
+        cart.addItem(createCartItem(100L, cart, product, 2));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(couponService.findValidCoupon("N11WELCOME", new BigDecimal("200.00"))).thenReturn(coupon);
+        when(couponService.calculateDiscount(coupon, new BigDecimal("200.00"))).thenReturn(new BigDecimal("20.00"));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            ReflectionTestUtils.setField(order, "id", 50L);
+            return order;
+        });
+
+        OrderResponse response = orderService.createOrder(
+                user.getEmail(),
+                new CreateOrderRequest("Istanbul, Turkey", "N11WELCOME"));
+
+        assertEquals(new BigDecimal("180.00"), response.getTotalAmount());
+        assertEquals(new BigDecimal("20.00"), response.getDiscountAmount());
+        assertEquals("N11WELCOME", response.getCouponCode());
+    }
+
+    @Test
+    void createOrderWithInvalidCouponRejects() {
+        User user = createUser("user@test.com");
+        Product product = createProduct(10L, 5);
+        Cart cart = createCart(1L, user);
+        cart.addItem(createCartItem(100L, cart, product, 2));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(couponService.findValidCoupon("BADCODE", new BigDecimal("200.00")))
+                .thenThrow(new BusinessException("Coupon not found", HttpStatus.NOT_FOUND));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> orderService.createOrder(user.getEmail(), new CreateOrderRequest("Address", "BADCODE")));
+
+        assertEquals("Coupon not found", exception.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrderDoesNotIncrementCouponUsedCount() {
+        User user = createUser("user@test.com");
+        Product product = createProduct(10L, 5);
+        Cart cart = createCart(1L, user);
+        Coupon coupon = new Coupon("N11WELCOME", DiscountType.PERCENT, new BigDecimal("10.00"));
+        cart.addItem(createCartItem(100L, cart, product, 2));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(couponService.findValidCoupon("N11WELCOME", new BigDecimal("200.00"))).thenReturn(coupon);
+        when(couponService.calculateDiscount(coupon, new BigDecimal("200.00"))).thenReturn(new BigDecimal("20.00"));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.createOrder(user.getEmail(), new CreateOrderRequest("Address", "N11WELCOME"));
+
+        verify(couponService, never()).markCouponUsed("N11WELCOME");
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.n11.marketplace.dto.request.CreateOrderRequest;
 import com.n11.marketplace.dto.response.OrderResponse;
 import com.n11.marketplace.entity.Cart;
 import com.n11.marketplace.entity.CartItem;
+import com.n11.marketplace.entity.Coupon;
 import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.OrderItem;
 import com.n11.marketplace.entity.Product;
@@ -30,16 +31,19 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final CouponService couponService;
 
     public OrderService(
             OrderRepository orderRepository,
             CartRepository cartRepository,
             UserRepository userRepository,
-            OrderMapper orderMapper) {
+            OrderMapper orderMapper,
+            CouponService couponService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.orderMapper = orderMapper;
+        this.couponService = couponService;
     }
 
     @Transactional
@@ -72,7 +76,15 @@ public class OrderService {
             order.addItem(orderItem);
         }
 
-        order.setTotalAmount(totalAmount);
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            Coupon coupon = couponService.findValidCoupon(request.getCouponCode(), totalAmount);
+            discountAmount = couponService.calculateDiscount(coupon, totalAmount);
+            order.setCouponCode(coupon.getCode());
+        }
+
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(totalAmount.subtract(discountAmount));
         Order savedOrder = orderRepository.save(order);
         log.info("Order created for user {}, order {}, total {}", userEmail, savedOrder.getId(), savedOrder.getTotalAmount());
         return orderMapper.toResponse(savedOrder);
