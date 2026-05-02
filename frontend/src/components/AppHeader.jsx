@@ -22,6 +22,9 @@ export default function AppHeader() {
 
         {!loading && user && (
           <>
+            {user.role === 'ADMIN' && (
+              <NavLink to="/admin/orders">Admin</NavLink>
+            )}
             <NavLink to="/cart">Sepet</NavLink>
             <div className="user-menu">
               <span>{user.fullName || user.email}</span>

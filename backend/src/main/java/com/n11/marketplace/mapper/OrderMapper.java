@@ -1,5 +1,6 @@
 package com.n11.marketplace.mapper;
 
+import com.n11.marketplace.dto.response.AdminOrderResponse;
 import com.n11.marketplace.dto.response.OrderItemResponse;
 import com.n11.marketplace.dto.response.OrderResponse;
 import com.n11.marketplace.entity.Order;
@@ -23,6 +24,24 @@ public class OrderMapper {
                 order.getTotalAmount(),
                 order.getCouponCode(),
                 order.getDiscountAmount(),
+                order.getCreatedAt(),
+                items);
+    }
+
+    public AdminOrderResponse toAdminResponse(Order order) {
+        List<OrderItemResponse> items = order.getItems().stream()
+                .map(this::toItemResponse)
+                .toList();
+
+        return new AdminOrderResponse(
+                order.getId(),
+                order.getUser().getEmail(),
+                order.getStatus().name(),
+                order.getPaymentStatus().name(),
+                order.getTotalAmount(),
+                order.getCouponCode(),
+                order.getDiscountAmount(),
+                order.getShippingAddress(),
                 order.getCreatedAt(),
                 items);
     }
