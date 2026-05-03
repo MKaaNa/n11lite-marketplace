@@ -2,6 +2,8 @@ package com.n11.marketplace.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,7 +19,9 @@ import com.n11.marketplace.security.JwtFilter;
 import com.n11.marketplace.service.ProductCatalogService;
 import java.math.BigDecimal;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -25,6 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -85,6 +90,32 @@ class ProductCatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void productsShouldMapPriceAscSortToSafePageable() throws Exception {
+        when(productCatalogService.getProducts(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 12), 0));
+
+        mockMvc.perform(get("/api/products").param("sort", "price_asc"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productCatalogService).getProducts(isNull(), isNull(), captor.capture());
+        Assertions.assertEquals(Sort.Direction.ASC, captor.getValue().getSort().getOrderFor("price").getDirection());
+    }
+
+    @Test
+    void productsShouldFallbackToRecommendedSortForUnknownKey() throws Exception {
+        when(productCatalogService.getProducts(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 12), 0));
+
+        mockMvc.perform(get("/api/products").param("sort", "not_a_real_mode"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(productCatalogService).getProducts(isNull(), isNull(), captor.capture());
+        Assertions.assertEquals(Sort.Direction.ASC, captor.getValue().getSort().getOrderFor("id").getDirection());
     }
 
     @Test

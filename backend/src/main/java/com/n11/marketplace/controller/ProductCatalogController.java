@@ -5,6 +5,7 @@ import com.n11.marketplace.dto.response.PageResponse;
 import com.n11.marketplace.dto.response.ProductDetailResponse;
 import com.n11.marketplace.dto.response.ProductSummaryResponse;
 import com.n11.marketplace.service.ProductCatalogService;
+import com.n11.marketplace.util.ProductCatalogSort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -40,8 +41,10 @@ public class ProductCatalogController {
     public ResponseEntity<PageResponse<ProductSummaryResponse>> getProducts(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 12, sort = "id") Pageable pageable) {
-        Page<ProductSummaryResponse> products = productCatalogService.getProducts(category, search, pageable);
+            @RequestParam(required = false, defaultValue = "recommended") String sort,
+            @PageableDefault(size = 12) Pageable pageable) {
+        Pageable safePageable = ProductCatalogSort.apply(pageable, sort);
+        Page<ProductSummaryResponse> products = productCatalogService.getProducts(category, search, safePageable);
         return ResponseEntity.ok(PageResponse.from(products));
     }
 
