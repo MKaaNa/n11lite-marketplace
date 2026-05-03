@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.n11.marketplace.dto.response.CategoryResponse;
 import com.n11.marketplace.dto.response.ProductDetailResponse;
 import com.n11.marketplace.dto.response.ProductSummaryResponse;
+import com.n11.marketplace.dto.response.ProductVariantOptionResponse;
 import com.n11.marketplace.dto.response.StoreResponse;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.exception.GlobalExceptionHandler;
@@ -174,6 +175,7 @@ class ProductCatalogControllerTest {
                 List.of(new com.n11.marketplace.dto.response.ProductImageResponse(
                         1L,
                         "https://example.com/image-1.jpg",
-                        1)));
+                        1)),
+                List.of(new ProductVariantOptionResponse(1L, "BEDEN", "M", 5)));
     }
 }

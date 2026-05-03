@@ -9,10 +9,12 @@ import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.OrderItem;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.User;
+import com.n11.marketplace.entity.UserAddress;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.mapper.OrderMapper;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.OrderRepository;
+import com.n11.marketplace.repository.UserAddressRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -30,6 +32,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
+    private final UserAddressRepository userAddressRepository;
     private final OrderMapper orderMapper;
     private final CouponService couponService;
 
@@ -37,11 +40,13 @@ public class OrderService {
             OrderRepository orderRepository,
             CartRepository cartRepository,
             UserRepository userRepository,
+            UserAddressRepository userAddressRepository,
             OrderMapper orderMapper,
             CouponService couponService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
+        this.userAddressRepository = userAddressRepository;
         this.orderMapper = orderMapper;
         this.couponService = couponService;
     }
@@ -56,7 +61,8 @@ public class OrderService {
             throw new BusinessException("Cart is empty", HttpStatus.BAD_REQUEST);
         }
 
-        Order order = new Order(user, request.getShippingAddress());
+        String shipping = resolveShippingAddress(userEmail, request);
+        Order order = new Order(user, shipping);
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (CartItem cartItem : cart.getItems()) {
@@ -88,6 +94,16 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order created for user {}, order {}, total {}", userEmail, savedOrder.getId(), savedOrder.getTotalAmount());
         return orderMapper.toResponse(savedOrder);
+    }
+
+    private String resolveShippingAddress(String userEmail, CreateOrderRequest request) {
+        if (request.getSavedAddressId() != null) {
+            UserAddress saved = userAddressRepository
+                    .findByIdAndUser_Email(request.getSavedAddressId(), userEmail)
+                    .orElseThrow(() -> new BusinessException("Saved address not found", HttpStatus.NOT_FOUND));
+            return saved.getFullAddress();
+        }
+        return request.getShippingAddress().trim();
     }
 
     @Transactional(readOnly = true)

@@ -45,7 +45,11 @@ public class RecommendationController {
     @Operation(summary = "Get recommended products for current session")
     public ResponseEntity<List<RecommendedProductResponse>> getRecommendations(
             @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
-            @RequestParam(defaultValue = "4") int limit) {
-        return ResponseEntity.ok(recommendationService.getRecommendations(sessionId, limit));
+            @RequestParam(defaultValue = "4") int limit,
+            @RequestParam(required = false) String currentSlug) {
+        if (currentSlug == null || currentSlug.isBlank()) {
+            return ResponseEntity.ok(recommendationService.getRecommendations(sessionId, limit));
+        }
+        return ResponseEntity.ok(recommendationService.getRecommendations(sessionId, limit, currentSlug));
     }
 }

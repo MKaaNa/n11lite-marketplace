@@ -111,6 +111,24 @@ Start local PostgreSQL and Mailpit:
 docker compose up -d postgres mailpit
 ```
 
+Start the full stack (PostgreSQL + Mailpit + Backend + Frontend):
+
+```powershell
+docker compose up -d --build
+```
+
+Stop all services:
+
+```powershell
+docker compose down
+```
+
+View backend/frontend logs:
+
+```powershell
+docker compose logs -f backend frontend
+```
+
 Local database defaults:
 
 - Database: `n11_marketplace`
@@ -176,6 +194,13 @@ $env:IYZICO_CALLBACK_URL="https://PUBLIC-BACKEND-URL/api/payments/iyzico/callbac
 ```
 
 Do not store real or sandbox credentials in the repository. Iyzico sandbox uses Iyzico test cards, not real cards. Localhost callback URLs may not work for the full payment completion flow unless the backend is exposed through a public tunnel.
+
+### Saved cards (security note)
+
+- Full card number and CVV are not stored in the application database.
+- Saved cards are displayed with masked information (for example, last four digits).
+- When available, Iyzico `cardUserKey` / card token identifiers are used for the saved-card flow instead of persisting PAN/CVV.
+- For manual testing in sandbox, enter test card details yourself; do not rely on pre-filled card numbers in the UI.
 
 ## API Highlights
 

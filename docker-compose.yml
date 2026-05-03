@@ -18,6 +18,39 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  backend:
+    build:
+      context: ./backend
+    container_name: n11_marketplace_backend
+    depends_on:
+      - postgres
+      - mailpit
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/n11_marketplace
+      SPRING_DATASOURCE_USERNAME: n11_dev_user
+      SPRING_DATASOURCE_PASSWORD: n11_dev_password
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-that-is-long-enough-for-hs256-local-only}
+      IYZICO_API_KEY: ${IYZICO_API_KEY:-}
+      IYZICO_SECRET_KEY: ${IYZICO_SECRET_KEY:-}
+      IYZICO_BASE_URL: ${IYZICO_BASE_URL:-https://sandbox-api.iyzipay.com}
+      IYZICO_CALLBACK_URL: ${IYZICO_CALLBACK_URL:-http://localhost:8080/api/payments/iyzico/callback}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: n11_marketplace_frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
 volumes:
   postgres_data:
 

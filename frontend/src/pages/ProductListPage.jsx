@@ -5,6 +5,7 @@ import ProductCard from '../components/ProductCard';
 import SearchBar from '../components/SearchBar';
 
 const PAGE_SIZE = 12;
+const SKELETON_COUNT = 12;
 
 /** 0-based page index; max 5 page buttons in the sliding window. */
 function getVisiblePageIndices(currentPage, totalPages, maxButtons = 5) {
@@ -142,7 +143,23 @@ export default function ProductListPage() {
         </div>
 
       {error && <div className="alert alert--error">{error}</div>}
-      {loading && <div className="alert alert--loading">Ürünler yükleniyor...</div>}
+      {loading && (
+        <div className="product-grid product-grid--skeleton" aria-label="Ürünler yükleniyor">
+          {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+            <article key={`skeleton-${index}`} className="product-card product-card--skeleton" aria-hidden="true">
+              <div className="skeleton-image" />
+              <div className="product-card-body">
+                <div className="skeleton-line skeleton-line--sm" />
+                <div className="skeleton-line" />
+                <div className="skeleton-line skeleton-line--md" />
+                <div className="skeleton-line skeleton-line--price" />
+                <div className="skeleton-line skeleton-line--sm" />
+                <div className="skeleton-button" />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {!loading && !error && products.length === 0 && (
         <div className="alert alert--info catalog-empty-state">

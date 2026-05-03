@@ -52,14 +52,26 @@ export default function StoreReviewsPage() {
       {!loading && !error && data && (
         <>
           <header className="store-reviews-header">
-            <h1>{data.storeName}</h1>
-            <p className="store-reviews-meta">
-              Yorum ortalaması: <strong>{data.averageRating}</strong> / 5 —{' '}
-              <strong>{data.reviewCount}</strong> yorum
-            </p>
-            <p className="store-reviews-disclaimer alert alert--info">
-              Bu yorumlar mağazanın ürünlerine yapılmıştır.
-            </p>
+            <div className="store-summary-card">
+              <div className="store-summary-main">
+                <p className="store-summary-label">Mağaza Değerlendirmesi</p>
+                <h1>{data.storeName}</h1>
+                <p className="store-reviews-disclaimer">
+                  Bu yorumlar mağazanın ürünlerine yapılmıştır.
+                </p>
+              </div>
+              <div className="store-summary-metrics">
+                <div className="store-metric-box">
+                  <span className="store-metric-title">Ortalama</span>
+                  <strong>{data.averageRating}</strong>
+                  <span className="store-metric-stars">★★★★★</span>
+                </div>
+                <div className="store-metric-box">
+                  <span className="store-metric-title">Yorum</span>
+                  <strong>{data.reviewCount}</strong>
+                </div>
+              </div>
+            </div>
           </header>
 
           {data.reviewCount === 0 && (
@@ -69,18 +81,17 @@ export default function StoreReviewsPage() {
           {data.reviews?.length > 0 && (
             <ul className="store-reviews-list">
               {data.reviews.map((review) => (
-                <li key={review.id} className="review-item store-review-item">
+                <li key={review.id} className="store-review-card">
                   <div className="review-header">
                     <span className="review-author">{review.userFullName}</span>
-                    <span className="review-rating">
+                    <span className="review-rating review-rating--aligned">
                       {'★'.repeat(review.rating)}
                       {'☆'.repeat(5 - review.rating)}
                     </span>
                   </div>
-                  <p className="store-review-product">
-                    Ürün:{' '}
-                    <Link to={`/products/${review.productSlug}`}>{review.productName}</Link>
-                  </p>
+                  <Link className="store-review-product-badge" to={`/products/${review.productSlug}`}>
+                    {review.productName}
+                  </Link>
                   <p className="review-comment">{review.comment}</p>
                 </li>
               ))}

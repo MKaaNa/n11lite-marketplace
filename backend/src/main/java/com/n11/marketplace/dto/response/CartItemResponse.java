@@ -9,6 +9,9 @@ public class CartItemResponse {
     private String productName;
     private String productSlug;
     private String imageUrl;
+    private Long productVariantId;
+    private String variantType;
+    private String variantValue;
     private BigDecimal unitPrice;
     private Integer quantity;
     private BigDecimal lineTotal;
@@ -22,6 +25,9 @@ public class CartItemResponse {
             String productName,
             String productSlug,
             String imageUrl,
+            Long productVariantId,
+            String variantType,
+            String variantValue,
             BigDecimal unitPrice,
             Integer quantity,
             BigDecimal lineTotal) {
@@ -30,6 +36,9 @@ public class CartItemResponse {
         this.productName = productName;
         this.productSlug = productSlug;
         this.imageUrl = imageUrl;
+        this.productVariantId = productVariantId;
+        this.variantType = variantType;
+        this.variantValue = variantValue;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
         this.lineTotal = lineTotal;
@@ -73,6 +82,30 @@ public class CartItemResponse {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Long getProductVariantId() {
+        return productVariantId;
+    }
+
+    public void setProductVariantId(Long productVariantId) {
+        this.productVariantId = productVariantId;
+    }
+
+    public String getVariantType() {
+        return variantType;
+    }
+
+    public void setVariantType(String variantType) {
+        this.variantType = variantType;
+    }
+
+    public String getVariantValue() {
+        return variantValue;
+    }
+
+    public void setVariantValue(String variantValue) {
+        this.variantValue = variantValue;
     }
 
     public BigDecimal getUnitPrice() {

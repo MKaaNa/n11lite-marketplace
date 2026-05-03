@@ -6,6 +6,7 @@ import com.n11.marketplace.entity.Cart;
 import com.n11.marketplace.entity.CartItem;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.ProductImage;
+import com.n11.marketplace.entity.ProductVariant;
 import com.n11.marketplace.repository.ProductImageRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class CartMapper {
         Product product = item.getProduct();
         BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
         String imageUrl = findMainImageUrl(product.getId());
+        ProductVariant variant = item.getProductVariant();
 
         return new CartItemResponse(
                 item.getId(),
@@ -45,6 +47,9 @@ public class CartMapper {
                 product.getName(),
                 product.getSlug(),
                 imageUrl,
+                variant != null ? variant.getId() : null,
+                variant != null ? variant.getVariantType() : null,
+                variant != null ? variant.getVariantValue() : null,
                 product.getPrice(),
                 item.getQuantity(),
                 lineTotal);

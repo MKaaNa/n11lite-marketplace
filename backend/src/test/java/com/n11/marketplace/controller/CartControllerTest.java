@@ -61,7 +61,7 @@ class CartControllerTest {
 
     @Test
     void addItemShouldReturnCart() throws Exception {
-        AddToCartRequest request = new AddToCartRequest(10L, 2);
+        AddToCartRequest request = new AddToCartRequest(10L, 2, null);
         when(cartService.addItem(eq("user@test.com"), org.mockito.ArgumentMatchers.any(AddToCartRequest.class)))
                 .thenReturn(createCartResponse());
 
@@ -108,7 +108,7 @@ class CartControllerTest {
 
     @Test
     void addItemShouldReturnBadRequestForInvalidQuantity() throws Exception {
-        AddToCartRequest request = new AddToCartRequest(10L, 0);
+        AddToCartRequest request = new AddToCartRequest(10L, 0, null);
 
         mockMvc.perform(post("/api/cart/items")
                         .principal(PRINCIPAL)
@@ -124,6 +124,9 @@ class CartControllerTest {
                 "Modern Java Guide",
                 "modern-java-guide",
                 "https://example.com/java.jpg",
+                null,
+                null,
+                null,
                 new BigDecimal("100.00"),
                 2,
                 new BigDecimal("200.00"));

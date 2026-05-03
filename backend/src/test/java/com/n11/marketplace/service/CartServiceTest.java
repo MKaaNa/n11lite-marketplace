@@ -13,6 +13,7 @@ import com.n11.marketplace.entity.Cart;
 import com.n11.marketplace.entity.CartItem;
 import com.n11.marketplace.entity.Category;
 import com.n11.marketplace.entity.Product;
+import com.n11.marketplace.entity.ProductVariant;
 import com.n11.marketplace.entity.Store;
 import com.n11.marketplace.entity.User;
 import com.n11.marketplace.enums.Role;
@@ -22,6 +23,7 @@ import com.n11.marketplace.repository.CartItemRepository;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.ProductImageRepository;
 import com.n11.marketplace.repository.ProductRepository;
+import com.n11.marketplace.repository.ProductVariantRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -50,6 +52,9 @@ class CartServiceTest {
     private ProductRepository productRepository;
 
     @Mock
+    private ProductVariantRepository productVariantRepository;
+
+    @Mock
     private ProductImageRepository productImageRepository;
 
     private CartService cartService;
@@ -62,6 +67,7 @@ class CartServiceTest {
                 cartItemRepository,
                 userRepository,
                 productRepository,
+                productVariantRepository,
                 cartMapper);
     }
 
@@ -87,12 +93,12 @@ class CartServiceTest {
         Product product = createProduct(10L, 5);
         when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
-        when(cartItemRepository.findByCartIdAndProductId(cart.getId(), product.getId()))
+        when(cartItemRepository.findByCartIdAndProductIdAndVariant(cart.getId(), product.getId(), null))
                 .thenReturn(Optional.empty());
         when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId()))
                 .thenReturn(List.of());
 
-        CartResponse response = cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 2));
+        CartResponse response = cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 2, null));
 
         assertEquals(1, response.getItems().size());
         assertEquals(2, response.getItems().get(0).getQuantity());
@@ -109,12 +115,12 @@ class CartServiceTest {
         cart.addItem(item);
         when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
-        when(cartItemRepository.findByCartIdAndProductId(cart.getId(), product.getId()))
+        when(cartItemRepository.findByCartIdAndProductIdAndVariant(cart.getId(), product.getId(), null))
                 .thenReturn(Optional.of(item));
         when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId()))
                 .thenReturn(List.of());
 
-        CartResponse response = cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 3));
+        CartResponse response = cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 3, null));
 
         assertEquals(5, response.getItems().get(0).getQuantity());
         assertEquals(new BigDecimal("500.00"), response.getTotalAmount());
@@ -127,15 +133,53 @@ class CartServiceTest {
         Product product = createProduct(10L, 2);
         when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
-        when(cartItemRepository.findByCartIdAndProductId(cart.getId(), product.getId()))
+        when(cartItemRepository.findByCartIdAndProductIdAndVariant(cart.getId(), product.getId(), null))
                 .thenReturn(Optional.empty());
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 3)));
+                () -> cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 3, null)));
 
         assertEquals("Quantity exceeds stock", exception.getMessage());
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void addItemThrowsWhenFashionVariantMissing() {
+        User user = createUser();
+        Cart cart = createCart(1L, user);
+        Product product = createFashionProduct(10L, 20);
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 1, null)));
+
+        assertEquals("Variant selection is required for fashion products", exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void addItemAddsFashionItemWithVariant() {
+        User user = createUser();
+        Cart cart = createCart(1L, user);
+        Product product = createFashionProduct(10L, 20);
+        ProductVariant variant = createVariant(91L, product, "BEDEN", "M", 5);
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+        when(productVariantRepository.findByIdAndActiveTrue(variant.getId())).thenReturn(Optional.of(variant));
+        when(cartItemRepository.findByCartIdAndProductIdAndVariant(cart.getId(), product.getId(), variant.getId()))
+                .thenReturn(Optional.empty());
+        when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId()))
+                .thenReturn(List.of());
+
+        CartResponse response = cartService.addItem(user.getEmail(), new AddToCartRequest(product.getId(), 2, variant.getId()));
+
+        assertEquals(1, response.getItems().size());
+        assertEquals("BEDEN", response.getItems().get(0).getVariantType());
+        assertEquals("M", response.getItems().get(0).getVariantValue());
+        assertEquals(2, response.getItems().get(0).getQuantity());
     }
 
     @Test
@@ -274,8 +318,28 @@ class CartServiceTest {
         return product;
     }
 
+    private Product createFashionProduct(Long id, Integer stock) {
+        Category category = new Category("Moda", "fashion");
+        Store store = new Store("ModaStore");
+        Product product = new Product(
+                "Basic Pamuklu Tişört",
+                "basic-cotton-t-shirt",
+                new BigDecimal("100.00"),
+                stock,
+                category,
+                store);
+        ReflectionTestUtils.setField(product, "id", id);
+        return product;
+    }
+
+    private ProductVariant createVariant(Long id, Product product, String type, String value, Integer stock) {
+        ProductVariant variant = new ProductVariant(product, type, value, stock);
+        ReflectionTestUtils.setField(variant, "id", id);
+        return variant;
+    }
+
     private CartItem createCartItem(Long id, Cart cart, Product product, Integer quantity) {
-        CartItem item = new CartItem(cart, product, quantity);
+        CartItem item = new CartItem(cart, product, null, quantity);
         ReflectionTestUtils.setField(item, "id", id);
         return item;
     }

@@ -1,10 +1,10 @@
 export default function CategoryFilter({ categories, selectedCategory, onSelectCategory }) {
   const categoryIcons = {
     'digital-codes': '</>',
-    electronics: '▣',
+    electronics: '⚡',
     'home-living': '⌂',
-    books: '□',
-    fashion: '◇',
+    books: '▤',
+    fashion: '✧',
   };
 
   return (
@@ -14,7 +14,7 @@ export default function CategoryFilter({ categories, selectedCategory, onSelectC
         className={!selectedCategory ? 'filter-button active' : 'filter-button'}
         onClick={() => onSelectCategory('')}
       >
-        <span className="filter-icon">▦</span>
+        <span className="filter-icon" aria-hidden="true">▦</span>
         Tümü
       </button>
 
@@ -25,7 +25,7 @@ export default function CategoryFilter({ categories, selectedCategory, onSelectC
           className={selectedCategory === category.slug ? 'filter-button active' : 'filter-button'}
           onClick={() => onSelectCategory(category.slug)}
         >
-          <span className="filter-icon">{categoryIcons[category.slug] || '•'}</span>
+          <span className="filter-icon" aria-hidden="true">{categoryIcons[category.slug] || '•'}</span>
           {category.name}
         </button>
       ))}

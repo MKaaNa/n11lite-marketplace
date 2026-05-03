@@ -45,6 +45,7 @@ export default function ProductCard({ product }) {
   const imageUrl = !imageError && product.mainImageUrl
     ? product.mainImageUrl
     : 'https://placehold.co/800x800?text=Gorsel+Hazirlaniyor';
+  const showLowStockWarning = Number(product.stock) > 0 && Number(product.stock) <= 3;
 
   return (
     <article className="product-card">
@@ -86,6 +87,7 @@ export default function ProductCard({ product }) {
             <p className="product-price-old">{formatPrice(priceModel.originalPrice)}</p>
           )}
         </div>
+        {showLowStockWarning && <p className="low-stock-hint">Son {product.stock} ürün</p>}
         <p className="product-store">
           {product.store?.name}
           {product.store?.official && <span className="verified-store">●</span>}

@@ -29,6 +29,10 @@ public class CartItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
+
     @Column(nullable = false)
     private Integer quantity;
 
@@ -41,9 +45,10 @@ public class CartItem {
     protected CartItem() {
     }
 
-    public CartItem(Cart cart, Product product, Integer quantity) {
+    public CartItem(Cart cart, Product product, ProductVariant productVariant, Integer quantity) {
         this.cart = cart;
         this.product = product;
+        this.productVariant = productVariant;
         this.quantity = quantity;
     }
 
@@ -76,6 +81,14 @@ public class CartItem {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public ProductVariant getProductVariant() {
+        return productVariant;
+    }
+
+    public void setProductVariant(ProductVariant productVariant) {
+        this.productVariant = productVariant;
     }
 
     public Integer getQuantity() {

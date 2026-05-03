@@ -10,10 +10,13 @@ import VerifyLoginPage from './pages/VerifyLoginPage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import AdminOrdersPage from './pages/AdminOrdersPage.jsx';
 import StoreReviewsPage from './pages/StoreReviewsPage.jsx';
+import AccountAddressesPage from './pages/AccountAddressesPage.jsx';
+import AccountCardsPage from './pages/AccountCardsPage.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
 
 export default function App() {
   return (
-    <>
+    <ToastProvider>
       <AppHeader />
       <Routes>
         <Route path="/" element={<ProductListPage />} />
@@ -32,6 +35,22 @@ export default function App() {
           )}
         />
         <Route
+          path="/account/addresses"
+          element={(
+            <ProtectedRoute>
+              <AccountAddressesPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/account/cards"
+          element={(
+            <ProtectedRoute>
+              <AccountCardsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
           path="/admin/orders"
           element={(
             <AdminRoute>
@@ -40,7 +59,7 @@ export default function App() {
           )}
         />
       </Routes>
-    </>
+    </ToastProvider>
   );
 }
 

@@ -38,6 +38,9 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "iyzico_card_user_key")
+    private String iyzicoCardUserKey;
+
     protected User() {
     }
 
@@ -100,5 +103,13 @@ public class User {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public String getIyzicoCardUserKey() {
+        return iyzicoCardUserKey;
+    }
+
+    public void setIyzicoCardUserKey(String iyzicoCardUserKey) {
+        this.iyzicoCardUserKey = iyzicoCardUserKey;
     }
 }
