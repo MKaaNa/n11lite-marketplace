@@ -15,4 +15,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByUserEmailAndProductSlug(
             @Param("userEmail") String userEmail,
             @Param("productSlug") String productSlug);
+
+    @Query("SELECT r FROM Review r JOIN FETCH r.user JOIN FETCH r.product p JOIN p.store s WHERE s.id = :storeId AND p.active = true ORDER BY r.createdAt DESC")
+    List<Review> findByStoreIdWithDetailsOrderByCreatedAtDesc(@Param("storeId") Long storeId);
 }

@@ -18,6 +18,7 @@ import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.repository.ProductRepository;
 import com.n11.marketplace.repository.ReviewRepository;
+import com.n11.marketplace.repository.StoreRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,11 +43,14 @@ class ReviewServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private StoreRepository storeRepository;
+
     private ReviewService reviewService;
 
     @BeforeEach
     void setUp() {
-        reviewService = new ReviewService(reviewRepository, productRepository, userRepository);
+        reviewService = new ReviewService(reviewRepository, productRepository, userRepository, storeRepository);
     }
 
     @Test

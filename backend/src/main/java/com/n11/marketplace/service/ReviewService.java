@@ -3,12 +3,16 @@ package com.n11.marketplace.service;
 import com.n11.marketplace.dto.request.CreateReviewRequest;
 import com.n11.marketplace.dto.response.ProductReviewSummaryResponse;
 import com.n11.marketplace.dto.response.ReviewResponse;
+import com.n11.marketplace.dto.response.StoreReviewItemResponse;
+import com.n11.marketplace.dto.response.StoreReviewSummaryResponse;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.Review;
+import com.n11.marketplace.entity.Store;
 import com.n11.marketplace.entity.User;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.repository.ProductRepository;
 import com.n11.marketplace.repository.ReviewRepository;
+import com.n11.marketplace.repository.StoreRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.util.List;
 import org.slf4j.Logger;
@@ -25,14 +29,17 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final StoreRepository storeRepository;
 
     public ReviewService(
             ReviewRepository reviewRepository,
             ProductRepository productRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            StoreRepository storeRepository) {
         this.reviewRepository = reviewRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.storeRepository = storeRepository;
     }
 
     @Transactional(readOnly = true)
@@ -56,6 +63,40 @@ public class ReviewService {
                 Math.round(averageRating * 10.0) / 10.0,
                 reviews.size(),
                 reviewResponses);
+    }
+
+    @Transactional(readOnly = true)
+    public StoreReviewSummaryResponse getReviewsForStore(Long storeId) {
+        Store store = storeRepository.findById(storeId)
+                .filter(Store::isActive)
+                .orElseThrow(() -> new BusinessException("Store not found", HttpStatus.NOT_FOUND));
+
+        List<Review> reviews = reviewRepository.findByStoreIdWithDetailsOrderByCreatedAtDesc(storeId);
+
+        double averageRating = reviews.isEmpty()
+                ? 0.0
+                : reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
+
+        List<StoreReviewItemResponse> items = reviews.stream()
+                .map(r -> {
+                    Product p = r.getProduct();
+                    return new StoreReviewItemResponse(
+                            r.getId(),
+                            r.getUser().getFullName(),
+                            r.getRating(),
+                            r.getComment(),
+                            r.getCreatedAt(),
+                            p.getName(),
+                            p.getSlug());
+                })
+                .toList();
+
+        return new StoreReviewSummaryResponse(
+                store.getId(),
+                store.getName(),
+                Math.round(averageRating * 10.0) / 10.0,
+                reviews.size(),
+                items);
     }
 
     @Transactional
