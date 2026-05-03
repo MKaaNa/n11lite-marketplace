@@ -37,14 +37,31 @@ export default function VerifyLoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
+        <span className="auth-brand">N11Lite</span>
         <p className="eyebrow">Email doğrulama</p>
         <h1>Girişi Doğrula</h1>
+        <img
+          className="auth-illustration"
+          src="/assets/brand/illus-auth.png"
+          alt=""
+          decoding="async"
+        />
 
         {location.state?.email && (
           <p className="auth-hint">Kod {location.state.email} adresine gönderildi.</p>
         )}
 
-        {error && <div className="state-message error-message">{error}</div>}
+        <div className="mailpit-helper">
+          <p>
+            Local demo ortamında doğrulama kodunu Mailpit ekranından görebilirsin.
+            Gerçek SMTP tanımlandığında kod gerçek e-posta adresine gönderilir.
+          </p>
+          <a href="http://localhost:8025" target="_blank" rel="noreferrer">
+            Mail Kutusunu Aç
+          </a>
+        </div>
+
+        {error && <div className="alert alert--error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -57,6 +74,7 @@ export default function VerifyLoginPage() {
           <label>
             6 haneli kod
             <input
+              className="verify-code-input"
               value={code}
               maxLength="6"
               onChange={(event) => setCode(event.target.value)}
