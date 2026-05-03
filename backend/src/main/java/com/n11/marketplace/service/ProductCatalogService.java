@@ -15,6 +15,7 @@ import com.n11.marketplace.repository.CategoryRepository;
 import com.n11.marketplace.repository.ProductImageRepository;
 import com.n11.marketplace.repository.ProductRepository;
 import com.n11.marketplace.repository.ProductVariantRepository;
+import com.n11.marketplace.repository.CouponRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +33,7 @@ public class ProductCatalogService {
     private final ProductVariantRepository productVariantRepository;
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
+    private final CouponRepository couponRepository;
 
     public ProductCatalogService(
             ProductRepository productRepository,
@@ -39,13 +41,15 @@ public class ProductCatalogService {
             ProductImageRepository productImageRepository,
             ProductVariantRepository productVariantRepository,
             ProductMapper productMapper,
-            CategoryMapper categoryMapper) {
+            CategoryMapper categoryMapper,
+            CouponRepository couponRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.productImageRepository = productImageRepository;
         this.productVariantRepository = productVariantRepository;
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
+        this.couponRepository = couponRepository;
     }
 
     public Page<ProductSummaryResponse> getProducts(String categorySlug, String search, Pageable pageable) {
@@ -97,7 +101,13 @@ public class ProductCatalogService {
                     .map(this::toVariantResponse)
                     .toList();
         }
-        return productMapper.toDetail(product, images, variants);
+        ProductDetailResponse response = productMapper.toDetail(product, images, variants);
+        couponRepository.findFirstByProduct_IdAndActiveTrueOrderByCreatedAtDesc(product.getId())
+                .ifPresent(coupon -> {
+                    response.setProductCouponCode(coupon.getCode());
+                    response.setProductCouponLabel("Bu kupon sadece bu üründe geçerlidir.");
+                });
+        return response;
     }
 
     public List<CategoryResponse> getActiveCategories() {

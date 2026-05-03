@@ -10,19 +10,28 @@ public class CouponResponse {
     private BigDecimal discountAmount;
     private BigDecimal originalTotal;
     private BigDecimal finalTotal;
+    private String productSlug;
     private String message;
 
     public CouponResponse() {
     }
 
-    public CouponResponse(String code, String discountType, BigDecimal discountValue,
-            BigDecimal discountAmount, BigDecimal originalTotal, BigDecimal finalTotal, String message) {
+    public CouponResponse(
+            String code,
+            String discountType,
+            BigDecimal discountValue,
+            BigDecimal discountAmount,
+            BigDecimal originalTotal,
+            BigDecimal finalTotal,
+            String productSlug,
+            String message) {
         this.code = code;
         this.discountType = discountType;
         this.discountValue = discountValue;
         this.discountAmount = discountAmount;
         this.originalTotal = originalTotal;
         this.finalTotal = finalTotal;
+        this.productSlug = productSlug;
         this.message = message;
     }
 
@@ -72,6 +81,14 @@ public class CouponResponse {
 
     public void setFinalTotal(BigDecimal finalTotal) {
         this.finalTotal = finalTotal;
+    }
+
+    public String getProductSlug() {
+        return productSlug;
+    }
+
+    public void setProductSlug(String productSlug) {
+        this.productSlug = productSlug;
     }
 
     public String getMessage() {

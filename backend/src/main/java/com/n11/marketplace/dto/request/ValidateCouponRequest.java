@@ -14,6 +14,8 @@ public class ValidateCouponRequest {
     @PositiveOrZero
     private BigDecimal cartTotal;
 
+    private String productSlug;
+
     public ValidateCouponRequest() {
     }
 
@@ -36,5 +38,13 @@ public class ValidateCouponRequest {
 
     public void setCartTotal(BigDecimal cartTotal) {
         this.cartTotal = cartTotal;
+    }
+
+    public String getProductSlug() {
+        return productSlug;
+    }
+
+    public void setProductSlug(String productSlug) {
+        this.productSlug = productSlug;
     }
 }

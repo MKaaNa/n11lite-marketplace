@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.n11.marketplace.config.SecurityConfig;
 import com.n11.marketplace.exception.GlobalExceptionHandler;
+import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.security.JwtFilter;
 import com.n11.marketplace.security.JwtUtil;
 import com.n11.marketplace.security.UserDetailsServiceImpl;
@@ -26,6 +27,9 @@ class CouponSecurityTest {
 
     @MockitoBean
     private CouponService couponService;
+
+    @MockitoBean
+    private CartRepository cartRepository;
 
     @MockitoBean
     private JwtUtil jwtUtil;
