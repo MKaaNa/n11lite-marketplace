@@ -2,8 +2,16 @@ import axios from 'axios';
 
 const TOKEN_KEY = 'n11lite_token';
 
+const envBase = import.meta.env.VITE_API_BASE_URL;
+const baseURL =
+  typeof envBase === 'string' && envBase.trim() !== ''
+    ? envBase.trim()
+    : import.meta.env.PROD
+      ? ''
+      : 'http://localhost:8080';
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+  baseURL,
 });
 
 apiClient.interceptors.request.use((config) => {

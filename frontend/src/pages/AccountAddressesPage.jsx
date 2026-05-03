@@ -30,7 +30,7 @@ export default function AccountAddressesPage() {
     setError('');
     try {
       const response = await listAddresses();
-      setAddresses(response.data || []);
+      setAddresses(Array.isArray(response.data) ? response.data : []);
     } catch {
       setError('Adresler yüklenemedi.');
     } finally {

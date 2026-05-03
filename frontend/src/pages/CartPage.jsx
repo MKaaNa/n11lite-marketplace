@@ -140,8 +140,8 @@ export default function CartPage() {
         listAddresses(),
         listPaymentCards(),
       ]);
-      setSavedAddresses(addrRes.data || []);
-      setSavedCards(cardRes.data || []);
+      setSavedAddresses(Array.isArray(addrRes.data) ? addrRes.data : []);
+      setSavedCards(Array.isArray(cardRes.data) ? cardRes.data : []);
     } catch {
       setSavedAddresses([]);
       setSavedCards([]);
@@ -391,7 +391,7 @@ export default function CartPage() {
     }
   }
 
-  const items = cart?.items || [];
+  const items = Array.isArray(cart?.items) ? cart.items : [];
   const finalTotal = appliedCoupon?.finalTotal ?? cart?.totalAmount;
   const installmentEligible = Number(finalTotal || 0) >= 5000;
   const addressReady = addressSource === 'saved'
