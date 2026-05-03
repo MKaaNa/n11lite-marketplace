@@ -84,6 +84,22 @@ DevOps/local tools:
 
 ![Marketplace Home](docs/images/marketplace-home.png)
 
+### Login
+
+![Login Page](docs/images/login-page.png)
+
+### Register
+
+![Register Page](docs/images/register-page.png)
+
+### Email Verification
+
+![Verify Login Page](docs/images/verify-login-page.png)
+
+### Mailpit Verification Email
+
+![Mailpit Verification Email](docs/images/mailpit-verification.png)
+
 ### Product Detail
 
 ![Product Detail](docs/images/product-detail.png)
@@ -107,6 +123,14 @@ DevOps/local tools:
 ### Customer Orders
 
 ![Customer Orders](docs/images/my-orders.png)
+
+### Saved Addresses
+
+![Saved Addresses](docs/images/account-addresses.png)
+
+### Saved Cards
+
+![Saved Cards](docs/images/account-cards.png)
 
 ### Admin Order Management
 
@@ -164,6 +188,12 @@ password: password
 ```
 
 These are local seed users only and should not be treated as production credentials.
+
+## Account Features
+
+Authenticated users can view their orders, manage delivery addresses, and see saved cards as masked Iyzico-backed payment cards.
+
+The application does not store full card numbers or CVV values. Saved cards are shown with masked information only.
 
 ## Docker Compose Services
 
@@ -275,6 +305,7 @@ Public endpoints:
 - `GET /api/products`
 - `GET /api/products/{slug}`
 - `GET /api/products/{slug}/reviews`
+- `GET /api/stores/{storeId}/reviews`
 - `GET /api/recommendations`
 - `POST /api/recommendations/views/{slug}`
 - `POST /api/auth/register`
@@ -296,6 +327,14 @@ Authenticated endpoints:
 - `POST /api/payments/orders/{orderId}/checkout`
 - `GET /api/payments/orders/{orderId}`
 - `POST /api/products/{slug}/reviews`
+- `GET /api/me/addresses`
+- `POST /api/me/addresses`
+- `PUT /api/me/addresses/{addressId}`
+- `DELETE /api/me/addresses/{addressId}`
+- `PUT /api/me/addresses/{addressId}/default`
+- `GET /api/me/payment-cards`
+- `POST /api/me/payment-cards`
+- `DELETE /api/me/payment-cards/{cardToken}`
 
 Admin endpoints:
 
@@ -344,12 +383,13 @@ http://localhost:5173
 10. Browse products and open product detail.
 11. Check product reviews, store review information, and recommendations.
 12. Add product to cart and update cart.
-13. Apply a demo coupon such as `N11WELCOME` if the cart total meets the minimum amount.
-14. Create order from the cart page by entering a shipping address.
-15. Start the Iyzico payment flow from the cart page.
-16. If sandbox credentials are missing, confirm the friendly configuration message.
-17. Login as the demo admin user and update order status from the admin panel.
-18. Use Swagger for API documentation and manual endpoint testing.
+13. Open account pages to view orders, saved addresses, and masked saved cards.
+14. Apply a demo coupon such as `N11WELCOME` if the cart total meets the minimum amount.
+15. Create order from the cart page by entering a shipping address.
+16. Start the Iyzico payment flow from the cart page.
+17. If sandbox credentials are missing, confirm the friendly configuration message.
+18. Login as the demo admin user and update order status from the admin panel.
+19. Use Swagger for API documentation and manual endpoint testing.
 
 ## Testing and Build
 
