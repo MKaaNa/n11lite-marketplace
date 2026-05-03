@@ -33,7 +33,7 @@ public class CouponController {
             Principal principal,
             @Valid @RequestBody ValidateCouponRequest request) {
         if (principal != null) {
-            var cartItems = cartRepository.findByUserEmail(principal.getName())
+            var cartItems = cartRepository.findByUserEmailWithItemsAndProducts(principal.getName())
                     .map(cart -> cart.getItems())
                     .orElseGet(java.util.List::of);
             return ResponseEntity.ok(

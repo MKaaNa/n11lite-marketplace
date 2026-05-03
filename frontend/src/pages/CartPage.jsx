@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { listAddresses } from '../api/addressApi';
 import { clearCart, getCart, removeCartItem, updateCartItem } from '../api/cartApi';
@@ -20,6 +20,7 @@ function formatPrice(price) {
 export default function CartPage() {
   const { showToast } = useToast();
   const location = useLocation();
+  const autoApplyCouponAttempted = useRef(false);
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -42,6 +43,10 @@ export default function CartPage() {
   const [savedCards, setSavedCards] = useState([]);
 
   useEffect(() => {
+    autoApplyCouponAttempted.current = false;
+  }, [location.pathname, location.key]);
+
+  useEffect(() => {
     loadCart();
   }, []);
 
@@ -53,11 +58,66 @@ export default function CartPage() {
 
   useEffect(() => {
     const suggestedCoupon = location.state?.prefillCoupon;
-    if (typeof suggestedCoupon === 'string' && suggestedCoupon.trim()) {
-      setCouponCode(suggestedCoupon.trim());
+    const autoApply = location.state?.autoApplyCoupon === true;
+    if (typeof suggestedCoupon !== 'string' || !suggestedCoupon.trim()) {
+      return;
+    }
+    setCouponCode(suggestedCoupon.trim());
+    if (!autoApply) {
       showToast('Ürüne özel kupon hazır: sepette uygula.', 'info');
     }
   }, [location.state, showToast]);
+
+  useEffect(() => {
+    const code = typeof location.state?.prefillCoupon === 'string'
+      ? location.state.prefillCoupon.trim()
+      : '';
+    const autoApply = location.state?.autoApplyCoupon === true;
+    if (!autoApply || !code || loading || !cart || createdOrder) {
+      return;
+    }
+    if (autoApplyCouponAttempted.current) {
+      return;
+    }
+    autoApplyCouponAttempted.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setUpdating(true);
+        setError('');
+        setMessage('');
+        const response = await validateCoupon(code, cart.totalAmount);
+        if (!cancelled) {
+          setAppliedCoupon(response.data);
+          setCouponCode(response.data.code);
+          setMessage('Kupon uygulandı.');
+          showToast('Kupon uygulandı.', 'success');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAppliedCoupon(null);
+          setError(err.response?.data?.message || 'Kupon uygulanamadı.');
+          showToast('Kupon otomatik uygulanamadı; Kuponu Uygula ile tekrar dene.', 'info');
+        }
+      } finally {
+        if (!cancelled) {
+          setUpdating(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    loading,
+    cart,
+    createdOrder,
+    location.state?.prefillCoupon,
+    location.state?.autoApplyCoupon,
+    showToast,
+  ]);
 
   async function loadCart() {
     setLoading(true);
