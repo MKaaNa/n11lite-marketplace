@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clearCart, getCart, removeCartItem, updateCartItem } from '../api/cartApi';
 import { validateCoupon } from '../api/couponApi';
+import { createOrder } from '../api/orderApi';
+import { getPaymentStatus, initiatePayment } from '../api/paymentApi';
 
 const FALLBACK_IMAGE = 'https://placehold.co/300x300?text=N11Lite';
 
@@ -20,6 +22,15 @@ export default function CartPage() {
   const [message, setMessage] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentWarning, setPaymentWarning] = useState(null);
+  const [paymentStatusInfo, setPaymentStatusInfo] = useState(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [startingPayment, setStartingPayment] = useState(false);
 
   useEffect(() => {
     loadCart();
@@ -50,6 +61,16 @@ export default function CartPage() {
     return false;
   }
 
+  function clearCheckoutAfterCartChange() {
+    if (createdOrder || paymentInfo || paymentError) {
+      setCreatedOrder(null);
+      setPaymentInfo(null);
+      setPaymentError('');
+      setPaymentWarning(null);
+      setPaymentStatusInfo(null);
+    }
+  }
+
   async function handleQuantityChange(item, quantity) {
     if (quantity < 1) {
       return;
@@ -63,6 +84,7 @@ export default function CartPage() {
       const response = await updateCartItem(item.id, quantity);
       setCart(response.data);
       clearCouponAfterCartChange();
+      clearCheckoutAfterCartChange();
     } catch {
       setError('Adet güncellenemedi.');
     } finally {
@@ -78,6 +100,7 @@ export default function CartPage() {
     try {
       const response = await removeCartItem(itemId);
       setCart(response.data);
+      clearCheckoutAfterCartChange();
       if (!clearCouponAfterCartChange()) {
         setMessage('Ürün sepetten kaldırıldı.');
       }
@@ -98,6 +121,11 @@ export default function CartPage() {
       setCart(response.data);
       setAppliedCoupon(null);
       setCouponCode('');
+      setCreatedOrder(null);
+      setPaymentInfo(null);
+      setPaymentError('');
+      setPaymentWarning(null);
+      setPaymentStatusInfo(null);
       setMessage('Sepet temizlendi.');
     } catch {
       setError('Sepet temizlenemedi.');
@@ -108,6 +136,11 @@ export default function CartPage() {
 
   async function handleApplyCoupon(event) {
     event.preventDefault();
+
+    if (createdOrder) {
+      setError('Sipariş oluşturulduktan sonra kupon değiştirilemez.');
+      return;
+    }
 
     if (!couponCode.trim()) {
       setError('Kupon kodu girmelisin.');
@@ -134,11 +167,129 @@ export default function CartPage() {
   function handleRemoveCoupon() {
     setAppliedCoupon(null);
     setCouponCode('');
+    setCreatedOrder(null);
+    setPaymentInfo(null);
+    setPaymentError('');
+    setPaymentWarning(null);
+    setPaymentStatusInfo(null);
     setMessage('Kupon kaldırıldı.');
+  }
+
+  async function handleCreateOrder() {
+    if (!shippingAddress.trim()) {
+      setError('Teslimat adresi girmelisin.');
+      return;
+    }
+
+    setCreatingOrder(true);
+    setError('');
+    setMessage('');
+    setPaymentInfo(null);
+    setPaymentError('');
+    setPaymentWarning(null);
+    setPaymentStatusInfo(null);
+
+    try {
+      const response = await createOrder({
+        shippingAddress: shippingAddress.trim(),
+        couponCode: appliedCoupon?.code || null,
+      });
+      setCreatedOrder(response.data);
+      setMessage('Sipariş oluşturuldu. Iyzico ödeme sayfasına yönlendiriliyorsun.');
+      await startPaymentForOrder(response.data.id, true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Sipariş oluşturulamadı.');
+    } finally {
+      setCreatingOrder(false);
+    }
+  }
+
+  async function handleStartPayment() {
+    if (!createdOrder?.id) {
+      return;
+    }
+
+    await startPaymentForOrder(createdOrder.id, true);
+  }
+
+  async function startPaymentForOrder(orderId, redirectToPaymentPage = false) {
+    setStartingPayment(true);
+    setPaymentInfo(null);
+    setPaymentError('');
+    setPaymentWarning(null);
+    setPaymentStatusInfo(null);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await initiatePayment(orderId);
+      setPaymentInfo(response.data);
+
+      if (response.data.paymentPageUrl) {
+        setMessage('Ödeme bağlantısı hazır.');
+        if (redirectToPaymentPage) {
+          window.location.href = response.data.paymentPageUrl;
+        }
+      } else {
+        setPaymentError('Ödeme bağlantısı alınamadı. Lütfen daha sonra tekrar deneyin.');
+      }
+    } catch (err) {
+      const backendMessage = err.response?.data?.message || '';
+      const iyzicoMissing = backendMessage.toLowerCase().includes('iyzico');
+
+      if (iyzicoMissing) {
+        setPaymentWarning({
+          title: 'Iyzico sandbox bilgileri tanımlı değil',
+          body: 'Ödeme backend akışı hazır. Sandbox API bilgileri ve erişilebilir callback URL tanımlandığında kullanıcı Iyzico ödeme sayfasına yönlendirilir.',
+        });
+      } else {
+        setPaymentError(backendMessage || 'Ödeme başlatılamadı.');
+      }
+    } finally {
+      setStartingPayment(false);
+    }
+  }
+
+  async function handleCheckPaymentStatus() {
+    if (!createdOrder?.id) {
+      return;
+    }
+
+    setCheckingPayment(true);
+    setPaymentStatusInfo(null);
+    setPaymentError('');
+
+    try {
+      const response = await getPaymentStatus(createdOrder.id);
+      const payment = response.data;
+      let messageText = 'Ödeme henüz tamamlanmadı veya callback bekleniyor.';
+
+      if (payment.status === 'SUCCESS') {
+        messageText = 'Ödeme başarılı. Sipariş durumu güncellendi.';
+      } else if (payment.status === 'FAILED') {
+        messageText = 'Ödeme başarısız olarak işaretlendi.';
+      }
+
+      setPaymentStatusInfo({
+        status: payment.status,
+        message: messageText,
+      });
+    } catch (err) {
+      const status = err.response?.status;
+      setPaymentStatusInfo({
+        status: 'BULUNAMADI',
+        message: status === 404
+          ? 'Ödeme kaydı henüz oluşmadı. Önce ödeme başlatmayı deneyin.'
+          : 'Ödeme durumu kontrol edilemedi.',
+      });
+    } finally {
+      setCheckingPayment(false);
+    }
   }
 
   const items = cart?.items || [];
   const finalTotal = appliedCoupon?.finalTotal ?? cart?.totalAmount;
+  const canCreateOrder = items.length > 0 && shippingAddress.trim() && !createdOrder && !creatingOrder && !startingPayment;
 
   return (
     <main className="catalog-page">
@@ -147,18 +298,26 @@ export default function CartPage() {
           <p className="eyebrow">Alışveriş sepeti</p>
           <h1>Sepetim</h1>
         </div>
-        <Link className="details-link" to="/">
+        <Link className="details-link" to="/products">
           Alışverişe Devam Et
         </Link>
       </section>
 
-      {loading && <div className="state-message">Sepet yükleniyor...</div>}
-      {error && <div className="state-message error-message">{error}</div>}
-      {message && <div className="state-message success-message">{message}</div>}
+      {loading && <div className="alert alert--loading">Sepet yükleniyor...</div>}
+      {error && <div className="alert alert--error">{error}</div>}
+      {message && <div className="alert alert--success">{message}</div>}
 
       {!loading && items.length === 0 && (
-        <div className="state-message">
-          Sepetiniz boş. <Link to="/">Ürünlere göz atın</Link>
+        <div className="alert alert--info empty-cart-state">
+          <img
+            className="empty-state-visual"
+            src="/assets/brand/illus-empty.png"
+            alt=""
+            decoding="async"
+          />
+          <p className="empty-cart-state-text">
+            Sepetiniz boş. <Link to="/products">Ürünlere göz atın</Link>
+          </p>
         </div>
       )}
 
@@ -223,9 +382,9 @@ export default function CartPage() {
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value)}
                   placeholder="N11WELCOME"
-                  disabled={updating}
+                  disabled={updating || Boolean(createdOrder)}
                 />
-                <button type="submit" disabled={updating}>
+                <button type="submit" disabled={updating || Boolean(createdOrder)}>
                   Kuponu Uygula
                 </button>
               </div>
@@ -242,8 +401,106 @@ export default function CartPage() {
             )}
 
             <p className="checkout-note">
-              Sipariş ve ödeme adımı Swagger/API üzerinden tamamlanabilir.
+              Bu ekrandan sipariş oluşturabilir ve Iyzico ödeme akışını başlatabilirsin.
+              Sandbox bilgileri tanımlı değilse ödeme sayfası yerine bilgilendirme gösterilir.
             </p>
+
+            <div className="checkout-panel">
+              <label htmlFor="shippingAddress">
+                Teslimat Adresi
+                <textarea
+                  id="shippingAddress"
+                  value={shippingAddress}
+                  onChange={(event) => setShippingAddress(event.target.value)}
+                  rows={4}
+                  placeholder="Mahalle, cadde, bina no, ilçe / il"
+                  disabled={Boolean(createdOrder) || creatingOrder}
+                />
+              </label>
+
+              <button
+                type="button"
+                className="primary-button"
+                disabled={!canCreateOrder}
+                onClick={handleCreateOrder}
+              >
+                {creatingOrder || startingPayment ? 'Ödeme sayfasına geçiliyor...' : 'Siparişi Oluştur ve Ödemeye Geç'}
+              </button>
+            </div>
+
+            {createdOrder && (
+              <div className="order-result">
+                <h3>Sipariş Oluşturuldu</h3>
+                <p>Sipariş No: #{createdOrder.id}</p>
+                <p>Sipariş Durumu: {createdOrder.status}</p>
+                <p>Ödeme Durumu: {createdOrder.paymentStatus}</p>
+                {createdOrder.discountAmount > 0 && (
+                  <p>İndirim: -{formatPrice(createdOrder.discountAmount)}</p>
+                )}
+                <p>Toplam Tutar: {formatPrice(createdOrder.totalAmount)}</p>
+
+                <p className="payment-status-note">
+                  {startingPayment
+                    ? 'Iyzico ödeme sayfası hazırlanıyor...'
+                    : 'Sipariş oluşturulduğunda ödeme sayfası otomatik açılır.'}
+                </p>
+              </div>
+            )}
+
+            {paymentError && <p className="alert alert--error">{paymentError}</p>}
+            {paymentWarning && (
+              <div className="alert alert--warning">
+                <div>
+                  <strong style={{ display: 'block', marginBottom: 4 }}>{paymentWarning.title}</strong>
+                  <span>{paymentWarning.body}</span>
+                </div>
+              </div>
+            )}
+
+            {paymentInfo?.paymentPageUrl && (
+              <>
+                <a
+                  className="payment-link"
+                  href={paymentInfo.paymentPageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Iyzico Ödeme Sayfasına Git
+                </a>
+                <p className="payment-status-note">
+                  Ödeme tamamlandıktan sonra ödeme durumunu buradan kontrol edebilirsin.
+                </p>
+              </>
+            )}
+
+            {createdOrder && !paymentInfo?.paymentPageUrl && (
+              <button
+                type="button"
+                className="primary-button"
+                disabled={startingPayment}
+                onClick={handleStartPayment}
+              >
+                {startingPayment ? 'Ödeme sayfası hazırlanıyor...' : 'Ödemeyi Tekrar Başlat'}
+              </button>
+            )}
+
+            {createdOrder && (
+              <div className="payment-status-panel">
+                <button
+                  type="button"
+                  disabled={checkingPayment}
+                  onClick={handleCheckPaymentStatus}
+                >
+                  {checkingPayment ? 'Durum kontrol ediliyor...' : 'Ödeme Durumunu Kontrol Et'}
+                </button>
+
+                {paymentStatusInfo && (
+                  <p>
+                    <strong>{paymentStatusInfo.status}</strong> - {paymentStatusInfo.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <button type="button" disabled={updating} onClick={handleClearCart}>
               Sepeti Temizle
