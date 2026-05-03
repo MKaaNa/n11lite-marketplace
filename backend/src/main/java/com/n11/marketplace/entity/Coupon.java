@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -24,6 +26,10 @@ public class Coupon {
 
     @Column(nullable = false, unique = true, length = 50)
     private String code;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -86,6 +92,14 @@ public class Coupon {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
     }
 
     public DiscountType getDiscountType() {

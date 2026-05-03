@@ -18,6 +18,8 @@ public class ProductDetailResponse {
     private StoreResponse store;
     private List<ProductImageResponse> images;
     private List<ProductVariantOptionResponse> variants;
+    private String productCouponCode;
+    private String productCouponLabel;
 
     public ProductDetailResponse() {
     }
@@ -153,5 +155,21 @@ public class ProductDetailResponse {
 
     public void setVariants(List<ProductVariantOptionResponse> variants) {
         this.variants = variants;
+    }
+
+    public String getProductCouponCode() {
+        return productCouponCode;
+    }
+
+    public void setProductCouponCode(String productCouponCode) {
+        this.productCouponCode = productCouponCode;
+    }
+
+    public String getProductCouponLabel() {
+        return productCouponLabel;
+    }
+
+    public void setProductCouponLabel(String productCouponLabel) {
+        this.productCouponLabel = productCouponLabel;
     }
 }

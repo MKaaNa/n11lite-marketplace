@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.n11.marketplace.dto.request.ValidateCouponRequest;
 import com.n11.marketplace.dto.response.CouponResponse;
 import com.n11.marketplace.exception.GlobalExceptionHandler;
+import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.security.JwtFilter;
 import com.n11.marketplace.service.CouponService;
 import java.math.BigDecimal;
@@ -38,6 +39,9 @@ class CouponControllerTest {
     private CouponService couponService;
 
     @MockitoBean
+    private CartRepository cartRepository;
+
+    @MockitoBean
     private JwtFilter jwtFilter;
 
     @Test
@@ -51,6 +55,7 @@ class CouponControllerTest {
                         new BigDecimal("50.00"),
                         new BigDecimal("500.00"),
                         new BigDecimal("450.00"),
+                        null,
                         "Coupon applied successfully"));
 
         mockMvc.perform(post("/api/coupons/validate")

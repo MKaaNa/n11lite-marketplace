@@ -3,6 +3,8 @@ package com.n11.marketplace.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,7 @@ import com.n11.marketplace.mapper.ProductImageMapper;
 import com.n11.marketplace.mapper.ProductMapper;
 import com.n11.marketplace.mapper.StoreMapper;
 import com.n11.marketplace.repository.CategoryRepository;
+import com.n11.marketplace.repository.CouponRepository;
 import com.n11.marketplace.repository.ProductImageRepository;
 import com.n11.marketplace.repository.ProductRepository;
 import com.n11.marketplace.repository.ProductVariantRepository;
@@ -54,6 +57,9 @@ class ProductCatalogServiceTest {
     @Mock
     private ProductVariantRepository productVariantRepository;
 
+    @Mock
+    private CouponRepository couponRepository;
+
     private ProductCatalogService productCatalogService;
 
     @BeforeEach
@@ -69,7 +75,10 @@ class ProductCatalogServiceTest {
                 productImageRepository,
                 productVariantRepository,
                 productMapper,
-                categoryMapper);
+                categoryMapper,
+                couponRepository);
+        lenient().when(couponRepository.findFirstByProduct_IdAndActiveTrueOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(Optional.empty());
     }
 
     @Test

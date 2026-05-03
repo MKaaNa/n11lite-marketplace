@@ -85,7 +85,11 @@ public class OrderService {
         BigDecimal discountAmount = BigDecimal.ZERO;
         if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
             Coupon coupon = couponService.findValidCoupon(request.getCouponCode(), totalAmount);
-            discountAmount = couponService.calculateDiscount(coupon, totalAmount);
+            if (coupon.getProduct() != null) {
+                discountAmount = couponService.calculateDiscountForOrder(coupon, totalAmount, order.getItems());
+            } else {
+                discountAmount = couponService.calculateDiscount(coupon, totalAmount);
+            }
             order.setCouponCode(coupon.getCode());
         }
 

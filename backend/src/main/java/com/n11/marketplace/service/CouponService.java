@@ -1,13 +1,16 @@
 package com.n11.marketplace.service;
 
 import com.n11.marketplace.dto.response.CouponResponse;
+import com.n11.marketplace.entity.CartItem;
 import com.n11.marketplace.entity.Coupon;
+import com.n11.marketplace.entity.OrderItem;
 import com.n11.marketplace.enums.DiscountType;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.repository.CouponRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +27,7 @@ public class CouponService {
     @Transactional(readOnly = true)
     public CouponResponse validateCoupon(String code, BigDecimal cartTotal) {
         Coupon coupon = findValidCoupon(code, cartTotal);
-        BigDecimal discountAmount = calculateDiscount(coupon, cartTotal);
+        BigDecimal discountAmount = calculateDiscount(coupon, resolveApplicableTotal(coupon, cartTotal));
         BigDecimal finalTotal = cartTotal.subtract(discountAmount).max(BigDecimal.ZERO);
 
         return new CouponResponse(
@@ -34,6 +37,25 @@ public class CouponService {
                 discountAmount,
                 cartTotal,
                 finalTotal,
+                coupon.getProduct() != null ? coupon.getProduct().getSlug() : null,
+                "Coupon applied successfully");
+    }
+
+    @Transactional(readOnly = true)
+    public CouponResponse validateCouponWithCartItems(String code, BigDecimal cartTotal, List<CartItem> cartItems) {
+        Coupon coupon = findValidCoupon(code, cartTotal);
+        BigDecimal applicableTotal = resolveApplicableTotalForCart(coupon, cartItems);
+        BigDecimal discountAmount = calculateDiscount(coupon, applicableTotal);
+        BigDecimal finalTotal = cartTotal.subtract(discountAmount).max(BigDecimal.ZERO);
+
+        return new CouponResponse(
+                coupon.getCode(),
+                coupon.getDiscountType().name(),
+                coupon.getDiscountValue(),
+                discountAmount,
+                cartTotal,
+                finalTotal,
+                coupon.getProduct() != null ? coupon.getProduct().getSlug() : null,
                 "Coupon applied successfully");
     }
 
@@ -68,6 +90,16 @@ public class CouponService {
         return discount.setScale(2, RoundingMode.HALF_UP);
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal calculateDiscountForOrder(Coupon coupon, BigDecimal orderTotal, List<OrderItem> items) {
+        BigDecimal applicableTotal = resolveApplicableTotalForOrder(coupon, items);
+        BigDecimal discount = calculateDiscount(coupon, applicableTotal);
+        if (discount.compareTo(orderTotal) > 0) {
+            return orderTotal.setScale(2, RoundingMode.HALF_UP);
+        }
+        return discount;
+    }
+
     @Transactional
     public void markCouponUsed(String code) {
         if (code == null || code.isBlank()) {
@@ -92,6 +124,47 @@ public class CouponService {
         if (coupon.getMinOrderAmount() != null && total.compareTo(coupon.getMinOrderAmount()) < 0) {
             throw new BusinessException("Cart total is below coupon minimum amount", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private BigDecimal resolveApplicableTotal(Coupon coupon, BigDecimal total) {
+        if (coupon.getProduct() == null) {
+            return total;
+        }
+        return total;
+    }
+
+    private BigDecimal resolveApplicableTotalForCart(Coupon coupon, List<CartItem> items) {
+        if (coupon.getProduct() == null) {
+            return items.stream()
+                    .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        BigDecimal subtotal = items.stream()
+                .filter(item -> item.getProduct() != null
+                        && item.getProduct().getId().equals(coupon.getProduct().getId()))
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Coupon is valid only for a specific product in cart", HttpStatus.BAD_REQUEST);
+        }
+        return subtotal;
+    }
+
+    private BigDecimal resolveApplicableTotalForOrder(Coupon coupon, List<OrderItem> items) {
+        if (coupon.getProduct() == null) {
+            return items.stream()
+                    .map(OrderItem::getLineTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        BigDecimal subtotal = items.stream()
+                .filter(item -> item.getProduct() != null
+                        && item.getProduct().getId().equals(coupon.getProduct().getId()))
+                .map(OrderItem::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Coupon is valid only for a specific product in cart", HttpStatus.BAD_REQUEST);
+        }
+        return subtotal;
     }
 
     private void validateCouponAvailability(Coupon coupon) {
