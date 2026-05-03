@@ -11,10 +11,10 @@ This project simulates a small marketplace flow:
 - users can register and log in with email verification
 - products can be listed and viewed in detail
 - authenticated users can manage their cart
-- orders can be created from the cart through the backend API
-- payment can be started and completed through a backend Iyzico sandbox flow
+- orders can be created from the cart UI or through the backend API
+- payment can be started from the cart UI through the backend Iyzico sandbox flow
 
-Order and payment frontend screens are not implemented yet. They are available through backend API endpoints and Swagger.
+The frontend keeps payment simple: it starts the Iyzico Checkout Form redirect flow and lets the user check payment status. It does not collect card details.
 
 ## Tech Stack
 
@@ -52,8 +52,8 @@ DevOps/local tools:
 - Email verification login flow
 - Local email testing with Mailpit
 - Shopping cart frontend and backend
-- Order creation backend API
-- Iyzico payment backend flow
+- Order creation frontend and backend API
+- Iyzico payment initiation and status flow
 - Swagger/OpenAPI documentation
 - Lightweight backend logging
 - Docker Compose for PostgreSQL and Mailpit
@@ -157,7 +157,7 @@ http://localhost:5173
 
 ## Iyzico Payment Notes
 
-The project has a backend Iyzico checkout flow for demo/sandbox usage.
+The project has an Iyzico Checkout Form flow for demo/sandbox usage. Local development can run without Iyzico credentials; in that case the app shows a friendly payment configuration message.
 
 Iyzico credentials are read from environment variables:
 
@@ -166,7 +166,16 @@ Iyzico credentials are read from environment variables:
 - `IYZICO_BASE_URL`
 - `IYZICO_CALLBACK_URL`
 
-Real production credentials are not stored in the project. If credentials are missing, the app still starts, but payment initiation returns a clear error.
+Example sandbox configuration shape:
+
+```powershell
+$env:IYZICO_API_KEY="sandbox-api-key"
+$env:IYZICO_SECRET_KEY="sandbox-secret-key"
+$env:IYZICO_BASE_URL="https://sandbox-api.iyzipay.com"
+$env:IYZICO_CALLBACK_URL="https://PUBLIC-BACKEND-URL/api/payments/iyzico/callback"
+```
+
+Do not store real or sandbox credentials in the repository. Iyzico sandbox uses Iyzico test cards, not real cards. Localhost callback URLs may not work for the full payment completion flow unless the backend is exposed through a public tunnel.
 
 ## API Highlights
 
@@ -234,9 +243,10 @@ http://localhost:5173
 9. Verify login with the code.
 10. Browse products and open product detail.
 11. Add product to cart and update cart.
-12. Create order through backend API or Swagger.
-13. Initiate payment through backend API or Swagger.
-14. Use Swagger for API documentation and manual endpoint testing.
+12. Create order from the cart page by entering a shipping address.
+13. Start the Iyzico payment flow from the cart page.
+14. If sandbox credentials are missing, confirm the friendly configuration message.
+15. Use Swagger for API documentation and manual endpoint testing.
 
 ## Testing and Build
 
