@@ -36,6 +36,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class IyzicoPaymentClient {
 
+    private static final String IYZICO_EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+
     private final IyzicoProperties properties;
 
     public IyzicoPaymentClient(IyzicoProperties properties) {
@@ -172,7 +174,7 @@ public class IyzicoPaymentClient {
         if (existingKey != null && !existingKey.isBlank()) {
             cardRequest.setCardUserKey(existingKey.trim());
         } else {
-            cardRequest.setEmail(user.getEmail());
+            cardRequest.setEmail(getSafeEmailForIyzico(user.getEmail(), user.getId()));
             cardRequest.setExternalId(String.valueOf(user.getId()));
         }
 
@@ -284,11 +286,26 @@ public class IyzicoPaymentClient {
     }
 
     private String getBuyerEmail(Order order) {
-        String email = order.getUser().getEmail();
-        if (email == null || email.isBlank()) {
-            return "guest@n11lite.local";
+        return getSafeEmailForIyzico(order.getUser().getEmail(), order.getUser().getId());
+    }
+
+    private String getSafeEmailForIyzico(String email, Long userId) {
+        if (email != null) {
+            String normalized = email.trim();
+            String lowerCased = normalized.toLowerCase();
+            boolean reservedDomain = lowerCased.endsWith(".local")
+                    || lowerCased.endsWith(".localhost")
+                    || lowerCased.endsWith(".test")
+                    || lowerCased.endsWith(".invalid")
+                    || lowerCased.endsWith(".example");
+            if (normalized.matches(IYZICO_EMAIL_REGEX) && !reservedDomain) {
+                return normalized;
+            }
         }
-        return email.trim();
+        if (userId == null) {
+            return "guest@n11lite.com";
+        }
+        return "demo.user" + userId + "@n11lite.com";
     }
 
     private String getBuyerSurname(Order order) {

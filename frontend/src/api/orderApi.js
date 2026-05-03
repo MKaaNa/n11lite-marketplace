@@ -7,3 +7,7 @@ export function createOrder({ shippingAddress, savedAddressId, couponCode }) {
     couponCode: couponCode || null,
   });
 }
+
+export function getMyOrders() {
+  return apiClient.get('/api/orders');
+}

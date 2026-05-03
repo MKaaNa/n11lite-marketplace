@@ -87,6 +87,7 @@ export default function AccountCardsPage() {
       </section>
 
       <div className="account-tabs">
+        <Link to="/account/orders">Siparişlerim</Link>
         <Link to="/account/addresses">Adreslerim</Link>
         <Link to="/account/cards" className="active">Kartlarım</Link>
       </div>
