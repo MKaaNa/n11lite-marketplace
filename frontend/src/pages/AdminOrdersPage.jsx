@@ -84,38 +84,28 @@ export default function AdminOrdersPage() {
             <p className="eyebrow">Yönetim Paneli</p>
             <h1>Tüm Siparişler</h1>
           </div>
-          <img
-            className="admin-hero-icon"
-            src="/assets/brand/adm-orders.png"
-            alt=""
-            decoding="async"
-          />
         </div>
         {!loading && orderStats && (
           <div className="admin-stats-grid">
             <div className="admin-stat-card">
-              <img className="admin-stat-icon" src="/assets/brand/adm-orders.png" alt="" decoding="async" />
               <div>
                 <span className="admin-stat-value">{orderStats.total}</span>
                 <span className="admin-stat-label">Toplam</span>
               </div>
             </div>
             <div className="admin-stat-card">
-              <img className="admin-stat-icon" src="/assets/brand/adm-process.png" alt="" decoding="async" />
               <div>
                 <span className="admin-stat-value">{orderStats.inProgress}</span>
                 <span className="admin-stat-label">İşlemde</span>
               </div>
             </div>
             <div className="admin-stat-card">
-              <img className="admin-stat-icon" src="/assets/brand/adm-ship.png" alt="" decoding="async" />
               <div>
                 <span className="admin-stat-value">{orderStats.shipped}</span>
                 <span className="admin-stat-label">Kargoda</span>
               </div>
             </div>
             <div className="admin-stat-card">
-              <img className="admin-stat-icon" src="/assets/brand/adm-done.png" alt="" decoding="async" />
               <div>
                 <span className="admin-stat-value">{orderStats.delivered}</span>
                 <span className="admin-stat-label">Teslim</span>

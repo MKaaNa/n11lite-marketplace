@@ -12,6 +12,7 @@ import AdminOrdersPage from './pages/AdminOrdersPage.jsx';
 import StoreReviewsPage from './pages/StoreReviewsPage.jsx';
 import AccountAddressesPage from './pages/AccountAddressesPage.jsx';
 import AccountCardsPage from './pages/AccountCardsPage.jsx';
+import AccountOrdersPage from './pages/AccountOrdersPage.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 
 export default function App() {
@@ -31,6 +32,14 @@ export default function App() {
           element={(
             <ProtectedRoute>
               <CartPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/account/orders"
+          element={(
+            <ProtectedRoute>
+              <AccountOrdersPage />
             </ProtectedRoute>
           )}
         />

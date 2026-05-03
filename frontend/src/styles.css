@@ -2385,6 +2385,43 @@ h1, h2, h3 {
   font-weight: 400;
 }
 
+.admin-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.admin-stat-card {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 12px;
+}
+
+.admin-stat-value {
+  display: block;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.admin-stat-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .admin-page > .alert,
 .admin-page > .state-message {
   margin: 20px max(16px, calc((100% - 1180px) / 2));
@@ -2900,6 +2937,81 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   font: inherit;
 }
 
+.account-orders-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 16px 28px;
+}
+
+.account-orders-header {
+  margin-bottom: 14px;
+}
+
+.account-orders-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.account-order-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-order-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+}
+
+.account-order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.account-order-top p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.account-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--text-body);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.account-order-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.account-order-items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+
+.account-order-more {
+  justify-content: center !important;
+  color: var(--text-muted);
+}
+
 /* === BRAND ASSETS === */
 .brand-link--logo {
   display: inline-flex;
@@ -3069,6 +3181,10 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
   .admin-page-header { padding: 20px 16px; }
 
+  .admin-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .store-summary-card { grid-template-columns: 1fr; }
 
   .store-summary-metrics { grid-template-columns: 1fr 1fr; }
@@ -3080,7 +3196,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
   .account-tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .account-layout {
@@ -3089,6 +3205,16 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
   .account-item-card {
     flex-direction: column;
+  }
+
+  .account-order-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-order-items li {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .category-filter {
