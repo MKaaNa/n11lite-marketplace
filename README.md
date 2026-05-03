@@ -1,6 +1,6 @@
 # N11Lite Marketplace
 
-N11Lite Marketplace is a bootcamp final project built as a simple e-commerce app with Spring Boot, React, PostgreSQL, and Docker Compose.
+N11Lite Marketplace is a bootcamp final project built as a demo marketplace/e-commerce app with Spring Boot, React, PostgreSQL, and Docker Compose.
 
 The project focuses on a clean layered backend, a usable React frontend for product/auth/cart flows, and demo-friendly local development tools.
 
@@ -13,6 +13,8 @@ This project simulates a small marketplace flow:
 - authenticated users can manage their cart
 - orders can be created from the cart UI or through the backend API
 - payment can be started from the cart UI through the backend Iyzico sandbox flow
+- users can apply demo coupons, write product reviews, and receive simple product recommendations
+- admins can manage order statuses from a small admin panel
 
 The frontend keeps payment simple: it starts the Iyzico Checkout Form redirect flow and lets the user check payment status. It does not collect card details.
 
@@ -52,8 +54,15 @@ DevOps/local tools:
 - Email verification login flow
 - Local email testing with Mailpit
 - Shopping cart frontend and backend
+- Coupon validation and cart discount display
 - Order creation frontend and backend API
 - Iyzico payment initiation and status flow
+- Iyzico sandbox Checkout Form with installment option display
+- Product reviews and ratings
+- Store review summary
+- Session-based product recommendations
+- Saved address and masked saved-card demo flow
+- Admin order management panel
 - Swagger/OpenAPI documentation
 - Lightweight backend logging
 - Docker Compose for PostgreSQL and Mailpit
@@ -65,8 +74,43 @@ DevOps/local tools:
 - Two-step login with email verification code
 - Local Mailpit inbox for welcome and verification emails
 - Backend Iyzico sandbox checkout flow
+- Coupon, review, recommendation, and admin flows for a more complete marketplace demo
 - Jib image build without writing a Dockerfile
 - CI/CD and deployment notes for GitHub Actions, Jenkins, AWS Elastic Beanstalk, RDS, and Slack notifications
+
+## Screenshots
+
+### Marketplace Home
+
+![Marketplace Home](docs/images/marketplace-home.png)
+
+### Product Detail
+
+![Product Detail](docs/images/product-detail.png)
+
+### Store Reviews
+
+![Store Reviews](docs/images/store-reviews.png)
+
+### Cart and Checkout
+
+![Cart and Checkout](docs/images/cart-checkout.png)
+
+### Iyzico Sandbox Payment
+
+![Iyzico Sandbox Payment](docs/images/iyzico-sandbox.png)
+
+### Payment Success
+
+![Payment Success](docs/images/payment-success.png)
+
+### Customer Orders
+
+![Customer Orders](docs/images/my-orders.png)
+
+### Admin Order Management
+
+![Admin Order Management](docs/images/admin-orders.png)
 
 ## Architecture Summary
 
@@ -102,6 +146,24 @@ Local demo admin credentials only:
 email: admin@n11lite.com
 password: N11LiteAdmin2026!
 ```
+
+## Demo Customer Users
+
+Seeded local demo users can be used if you do not want to register a new account during a demo:
+
+```text
+email: mert.demo2@n11lite.local
+password: password
+```
+
+Alternative:
+
+```text
+email: ayse.demo@n11lite.local
+password: password
+```
+
+These are local seed users only and should not be treated as production credentials.
 
 ## Docker Compose Services
 
@@ -177,6 +239,8 @@ http://localhost:5173
 
 The project has an Iyzico Checkout Form flow for demo/sandbox usage. Local development can run without Iyzico credentials; in that case the app shows a friendly payment configuration message.
 
+The checkout screen is handled by Iyzico. Card entry, 3D Secure/SMS simulation, and installment options are displayed on the Iyzico sandbox page, not inside the React frontend.
+
 Iyzico credentials are read from environment variables:
 
 - `IYZICO_API_KEY`
@@ -210,6 +274,9 @@ Public endpoints:
 - `GET /api/categories`
 - `GET /api/products`
 - `GET /api/products/{slug}`
+- `GET /api/products/{slug}/reviews`
+- `GET /api/recommendations`
+- `POST /api/recommendations/views/{slug}`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/verify-login`
@@ -222,11 +289,19 @@ Authenticated endpoints:
 - `PUT /api/cart/items/{itemId}`
 - `DELETE /api/cart/items/{itemId}`
 - `DELETE /api/cart/items`
+- `POST /api/coupons/validate`
 - `POST /api/orders`
 - `GET /api/orders`
 - `GET /api/orders/{orderId}`
 - `POST /api/payments/orders/{orderId}/checkout`
 - `GET /api/payments/orders/{orderId}`
+- `POST /api/products/{slug}/reviews`
+
+Admin endpoints:
+
+- `GET /api/admin/orders`
+- `GET /api/admin/orders/{orderId}`
+- `PUT /api/admin/orders/{orderId}/status`
 
 Payment callback:
 
@@ -267,11 +342,14 @@ http://localhost:5173
 8. Check verification code email in Mailpit.
 9. Verify login with the code.
 10. Browse products and open product detail.
-11. Add product to cart and update cart.
-12. Create order from the cart page by entering a shipping address.
-13. Start the Iyzico payment flow from the cart page.
-14. If sandbox credentials are missing, confirm the friendly configuration message.
-15. Use Swagger for API documentation and manual endpoint testing.
+11. Check product reviews, store review information, and recommendations.
+12. Add product to cart and update cart.
+13. Apply a demo coupon such as `N11WELCOME` if the cart total meets the minimum amount.
+14. Create order from the cart page by entering a shipping address.
+15. Start the Iyzico payment flow from the cart page.
+16. If sandbox credentials are missing, confirm the friendly configuration message.
+17. Login as the demo admin user and update order status from the admin panel.
+18. Use Swagger for API documentation and manual endpoint testing.
 
 ## Testing and Build
 
@@ -309,6 +387,8 @@ The project includes:
 - Slack notification plan
 
 This repository does not claim a live AWS deployment. The AWS section is a deployment plan for the final project.
+
+For the final demo, the project is intended to run locally with Docker Compose. The deployment-related files and documentation show deployment readiness, but the recorded demo does not depend on a live cloud deployment.
 
 ## Development Discipline
 
