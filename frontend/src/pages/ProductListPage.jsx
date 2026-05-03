@@ -91,8 +91,12 @@ export default function ProductListPage() {
       <section className="marketplace-hero">
         <div className="hero-inner">
           <div className="hero-copy">
-            <p className="eyebrow">N11Lite Marketplace</p>
-            <h1>Dijitalden fiziğe, aradığın her şey N11Lite’ta!</h1>
+            <p className="eyebrow">N11Lite</p>
+            <h1>
+              Ne ararsan tek tıkla kapında,
+              <br />
+              N11Lite ile gülümseme anında.
+            </h1>
             <p>
               Güvenli alışveriş, avantajlı fiyatlar ve hızlı teslimat ile demo pazar yeri
               deneyimini uçtan uca keşfet.
