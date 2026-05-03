@@ -119,7 +119,11 @@ export default function ProductDetailPage() {
     });
   }
 
-  async function addSelectedProductToCart({ goToCart = false } = {}) {
+  async function addSelectedProductToCart({
+    goToCart = false,
+    prefillCoupon = null,
+    autoApplyCoupon = false,
+  } = {}) {
     setError('');
 
     if (!user) {
@@ -140,14 +144,24 @@ export default function ProductDetailPage() {
     try {
       setCartLoading(true);
       await addToCart(product.id, quantity, selectedVariantId ? Number(selectedVariantId) : null);
+      if (prefillCoupon) {
+        navigate('/cart', {
+          state: {
+            prefillCoupon,
+            ...(autoApplyCoupon ? { autoApplyCoupon: true } : {}),
+          },
+        });
+        return;
+      }
       if (goToCart) {
         navigate('/cart');
         return;
       }
       showToast('Ürün sepete eklendi.', 'success');
     } catch {
-      setError(goToCart
-        ? 'Satın alma adımı başlatılamadı. Lütfen tekrar dene.'
+      const isRedirect = goToCart || prefillCoupon;
+      setError(isRedirect
+        ? 'Sepete eklenemedi. Lütfen tekrar dene.'
         : 'Ürün sepete eklenemedi.');
     } finally {
       setCartLoading(false);
@@ -166,8 +180,9 @@ export default function ProductDetailPage() {
     if (!product?.productCouponCode) {
       return;
     }
-    navigate('/cart', {
-      state: { prefillCoupon: product.productCouponCode },
+    addSelectedProductToCart({
+      prefillCoupon: product.productCouponCode,
+      autoApplyCoupon: true,
     });
   }
 
@@ -289,8 +304,17 @@ export default function ProductDetailPage() {
                   <p className="product-coupon-note">
                     {product.productCouponLabel || 'Bu kupon sadece bu üründe geçerlidir.'}
                   </p>
-                  <button type="button" className="secondary-button" onClick={handleUseProductCoupon}>
-                    Kuponu Sepette Kullan
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleUseProductCoupon}
+                    disabled={
+                      cartLoading
+                      || product.stock <= 0
+                      || (hasVariants && !selectedVariantId)
+                    }
+                  >
+                    {cartLoading ? 'Sepete ekleniyor...' : 'Kuponu Sepette Kullan'}
                   </button>
                 </div>
               )}
