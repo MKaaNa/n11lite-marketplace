@@ -92,7 +92,8 @@ export default function ProductDetailPage() {
         }
 
         if (recsRes.status === 'fulfilled') {
-          setRecommendations(recsRes.value.data);
+          const recs = recsRes.value.data;
+          setRecommendations(Array.isArray(recs) ? recs : []);
         }
       } catch {
         setProduct(null);
