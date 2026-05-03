@@ -5,21 +5,30 @@ import com.iyzipay.model.Address;
 import com.iyzipay.model.BasketItem;
 import com.iyzipay.model.BasketItemType;
 import com.iyzipay.model.Buyer;
+import com.iyzipay.model.Card;
+import com.iyzipay.model.CardInformation;
+import com.iyzipay.model.CardList;
 import com.iyzipay.model.CheckoutForm;
 import com.iyzipay.model.CheckoutFormInitialize;
 import com.iyzipay.model.Currency;
 import com.iyzipay.model.Locale;
 import com.iyzipay.model.PaymentGroup;
 import com.iyzipay.model.Status;
+import com.iyzipay.request.CreateCardRequest;
 import com.iyzipay.request.CreateCheckoutFormInitializeRequest;
+import com.iyzipay.request.DeleteCardRequest;
+import com.iyzipay.request.RetrieveCardListRequest;
 import com.iyzipay.request.RetrieveCheckoutFormRequest;
 import com.n11.marketplace.config.IyzicoProperties;
+import com.n11.marketplace.dto.request.RegisterPaymentCardRequest;
 import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.OrderItem;
+import com.n11.marketplace.entity.User;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -103,6 +112,11 @@ public class IyzicoPaymentClient {
         request.setCallbackUrl(properties.getCallbackUrl());
         request.setEnabledInstallments(List.of(1));
 
+        String cardUserKey = order.getUser().getIyzicoCardUserKey();
+        if (cardUserKey != null && !cardUserKey.isBlank()) {
+            request.setCardUserKey(cardUserKey.trim());
+        }
+
         Buyer buyer = new Buyer();
         buyer.setId(String.valueOf(order.getUser().getId()));
         buyer.setName(getBuyerFirstName(order));
@@ -144,6 +158,79 @@ public class IyzicoPaymentClient {
         request.setBasketItems(basketItems);
 
         return request;
+    }
+
+    public CardRegistrationResult registerCard(User user, RegisterPaymentCardRequest body) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("Iyzico is not configured");
+        }
+        CreateCardRequest cardRequest = new CreateCardRequest();
+        cardRequest.setLocale(Locale.TR.getValue());
+        cardRequest.setConversationId("card-" + user.getId() + "-" + System.currentTimeMillis());
+
+        String existingKey = user.getIyzicoCardUserKey();
+        if (existingKey != null && !existingKey.isBlank()) {
+            cardRequest.setCardUserKey(existingKey.trim());
+        } else {
+            cardRequest.setEmail(user.getEmail());
+            cardRequest.setExternalId(String.valueOf(user.getId()));
+        }
+
+        CardInformation cardInformation = new CardInformation();
+        cardInformation.setCardAlias(body.getCardAlias().trim());
+        cardInformation.setCardHolderName(body.getCardHolderName().trim());
+        cardInformation.setCardNumber(body.getCardNumber().trim());
+        cardInformation.setExpireMonth(body.getExpireMonth().trim());
+        cardInformation.setExpireYear(body.getExpireYear().trim());
+        cardRequest.setCard(cardInformation);
+
+        Card card = Card.create(cardRequest, options());
+        if (!Status.SUCCESS.getValue().equals(card.getStatus())) {
+            String msg = card.getErrorMessage() != null ? card.getErrorMessage() : "Kart Iyzico tarafından kaydedilemedi";
+            throw new IllegalStateException(msg);
+        }
+        return new CardRegistrationResult(
+                card.getCardUserKey(),
+                card.getCardToken(),
+                card.getCardAlias(),
+                card.getBinNumber(),
+                card.getLastFourDigits(),
+                card.getCardType(),
+                card.getCardAssociation());
+    }
+
+    public List<Card> listCards(String cardUserKey) {
+        if (!isConfigured()) {
+            return Collections.emptyList();
+        }
+        if (cardUserKey == null || cardUserKey.isBlank()) {
+            return Collections.emptyList();
+        }
+        RetrieveCardListRequest request = new RetrieveCardListRequest();
+        request.setLocale(Locale.TR.getValue());
+        request.setConversationId("list-" + System.currentTimeMillis());
+        request.setCardUserKey(cardUserKey.trim());
+        CardList cardList = CardList.retrieve(request, options());
+        if (!Status.SUCCESS.getValue().equals(cardList.getStatus()) || cardList.getCardDetails() == null) {
+            return Collections.emptyList();
+        }
+        return cardList.getCardDetails();
+    }
+
+    public void deleteCard(String cardUserKey, String cardToken) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("Iyzico is not configured");
+        }
+        DeleteCardRequest request = new DeleteCardRequest();
+        request.setLocale(Locale.TR.getValue());
+        request.setConversationId("del-" + System.currentTimeMillis());
+        request.setCardUserKey(cardUserKey.trim());
+        request.setCardToken(cardToken.trim());
+        Card card = Card.delete(request, options());
+        if (!Status.SUCCESS.getValue().equals(card.getStatus())) {
+            String msg = card.getErrorMessage() != null ? card.getErrorMessage() : "Kart silinemedi";
+            throw new IllegalStateException(msg);
+        }
     }
 
     private void assertBasketMatchesTotal(CreateCheckoutFormInitializeRequest request, BigDecimal paymentTotal) {

@@ -12,12 +12,15 @@ public class AddToCartRequest {
     @Min(1)
     private Integer quantity;
 
+    private Long productVariantId;
+
     public AddToCartRequest() {
     }
 
-    public AddToCartRequest(Long productId, Integer quantity) {
+    public AddToCartRequest(Long productId, Integer quantity, Long productVariantId) {
         this.productId = productId;
         this.quantity = quantity;
+        this.productVariantId = productVariantId;
     }
 
     public Long getProductId() {
@@ -34,5 +37,13 @@ public class AddToCartRequest {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Long getProductVariantId() {
+        return productVariantId;
+    }
+
+    public void setProductVariantId(Long productVariantId) {
+        this.productVariantId = productVariantId;
     }
 }

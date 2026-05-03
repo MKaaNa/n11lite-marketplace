@@ -3,7 +3,7 @@ import axios from 'axios';
 const TOKEN_KEY = 'n11lite_token';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
 });
 
 apiClient.interceptors.request.use((config) => {

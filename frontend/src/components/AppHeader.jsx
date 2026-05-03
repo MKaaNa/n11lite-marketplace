@@ -39,6 +39,7 @@ export default function AppHeader() {
             {user.role === 'ADMIN' && (
               <NavLink to="/admin/orders">Admin</NavLink>
             )}
+            <NavLink to="/account/addresses">Hesabım</NavLink>
             <NavLink className="cart-nav-link" to="/cart">
               Sepet
               <span className="cart-count-dot" aria-hidden="true" />

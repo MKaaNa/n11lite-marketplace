@@ -19,9 +19,14 @@ export function trackProductView(slug, sessionId) {
   });
 }
 
-export function getRecommendations(sessionId, limit = 4) {
+export function getRecommendations(sessionId, limit = 4, currentSlug = null) {
+  const params = { limit };
+  if (currentSlug) {
+    params.currentSlug = currentSlug;
+  }
+
   return apiClient.get('/api/recommendations', {
-    params: { limit },
+    params,
     headers: sessionId ? { 'X-Session-Id': sessionId } : {},
   });
 }

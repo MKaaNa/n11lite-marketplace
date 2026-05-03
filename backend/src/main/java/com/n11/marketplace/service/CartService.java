@@ -6,12 +6,14 @@ import com.n11.marketplace.dto.response.CartResponse;
 import com.n11.marketplace.entity.Cart;
 import com.n11.marketplace.entity.CartItem;
 import com.n11.marketplace.entity.Product;
+import com.n11.marketplace.entity.ProductVariant;
 import com.n11.marketplace.entity.User;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.mapper.CartMapper;
 import com.n11.marketplace.repository.CartItemRepository;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.ProductRepository;
+import com.n11.marketplace.repository.ProductVariantRepository;
 import com.n11.marketplace.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final CartMapper cartMapper;
 
     public CartService(
@@ -35,11 +38,13 @@ public class CartService {
             CartItemRepository cartItemRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
+            ProductVariantRepository productVariantRepository,
             CartMapper cartMapper) {
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.productVariantRepository = productVariantRepository;
         this.cartMapper = cartMapper;
     }
 
@@ -55,17 +60,22 @@ public class CartService {
         Product product = productRepository.findById(request.getProductId())
                 .filter(Product::isActive)
                 .orElseThrow(() -> new BusinessException("Product not found", HttpStatus.NOT_FOUND));
+        ProductVariant variant = validateAndResolveVariant(product, request.getProductVariantId());
 
-        CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), product.getId())
+        CartItem item = cartItemRepository.findByCartIdAndProductIdAndVariant(
+                        cart.getId(),
+                        product.getId(),
+                        variant != null ? variant.getId() : null)
                 .orElse(null);
 
+        int stockLimit = variant != null ? variant.getStock() : product.getStock();
         if (item == null) {
-            checkStock(request.getQuantity(), product.getStock());
-            item = new CartItem(cart, product, request.getQuantity());
+            checkStock(request.getQuantity(), stockLimit);
+            item = new CartItem(cart, product, variant, request.getQuantity());
             cart.addItem(item);
         } else {
             int newQuantity = item.getQuantity() + request.getQuantity();
-            checkStock(newQuantity, product.getStock());
+            checkStock(newQuantity, stockLimit);
             item.setQuantity(newQuantity);
         }
 
@@ -79,7 +89,10 @@ public class CartService {
         Cart cart = findCartByUserEmail(userEmail);
         CartItem item = findCartItemForUserCart(cart, itemId);
 
-        checkStock(request.getQuantity(), item.getProduct().getStock());
+        int stockLimit = item.getProductVariant() != null
+                ? item.getProductVariant().getStock()
+                : item.getProduct().getStock();
+        checkStock(request.getQuantity(), stockLimit);
         item.setQuantity(request.getQuantity());
         cartItemRepository.save(item);
         log.info("Cart item updated for user {}, item {}, quantity {}", userEmail, itemId, item.getQuantity());
@@ -143,5 +156,27 @@ public class CartService {
         if (quantity > stock) {
             throw new BusinessException("Quantity exceeds stock", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private ProductVariant validateAndResolveVariant(Product product, Long productVariantId) {
+        boolean isFashion = isFashionProduct(product);
+        if (!isFashion) {
+            return null;
+        }
+        if (productVariantId == null) {
+            throw new BusinessException("Variant selection is required for fashion products", HttpStatus.BAD_REQUEST);
+        }
+        ProductVariant variant = productVariantRepository.findByIdAndActiveTrue(productVariantId)
+                .orElseThrow(() -> new BusinessException("Product variant not found", HttpStatus.BAD_REQUEST));
+        if (!variant.getProduct().getId().equals(product.getId())) {
+            throw new BusinessException("Variant does not belong to product", HttpStatus.BAD_REQUEST);
+        }
+        return variant;
+    }
+
+    private boolean isFashionProduct(Product product) {
+        return product.getCategory() != null
+                && product.getCategory().getSlug() != null
+                && product.getCategory().getSlug().equals("fashion");
     }
 }

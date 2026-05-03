@@ -17,6 +17,7 @@ public class ProductDetailResponse {
     private CategoryResponse category;
     private StoreResponse store;
     private List<ProductImageResponse> images;
+    private List<ProductVariantOptionResponse> variants;
 
     public ProductDetailResponse() {
     }
@@ -33,7 +34,8 @@ public class ProductDetailResponse {
             String badge,
             CategoryResponse category,
             StoreResponse store,
-            List<ProductImageResponse> images) {
+            List<ProductImageResponse> images,
+            List<ProductVariantOptionResponse> variants) {
         this.id = id;
         this.name = name;
         this.slug = slug;
@@ -46,6 +48,7 @@ public class ProductDetailResponse {
         this.category = category;
         this.store = store;
         this.images = images;
+        this.variants = variants;
     }
 
     public Long getId() {
@@ -142,5 +145,13 @@ public class ProductDetailResponse {
 
     public void setImages(List<ProductImageResponse> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantOptionResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantOptionResponse> variants) {
+        this.variants = variants;
     }
 }

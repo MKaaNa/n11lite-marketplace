@@ -413,7 +413,7 @@ class PaymentServiceTest {
     private Cart createCart(Long id, User user, Product product) {
         Cart cart = new Cart(user);
         ReflectionTestUtils.setField(cart, "id", id);
-        CartItem item = new CartItem(cart, product, 2);
+        CartItem item = new CartItem(cart, product, null, 2);
         ReflectionTestUtils.setField(item, "id", 100L);
         cart.addItem(item);
         return cart;

@@ -6,7 +6,7 @@ export default function VerifyLoginPage() {
   const { verifyLoginCode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [verificationId, setVerificationId] = useState(location.state?.verificationId || '');
+  const verificationId = location.state?.verificationId;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,8 +15,13 @@ export default function VerifyLoginPage() {
     event.preventDefault();
     setError('');
 
-    if (!verificationId || !code) {
-      setError('Doğrulama numarası ve kod zorunludur.');
+    if (!verificationId) {
+      setError('Oturum doğrulaması bulunamadı. Lütfen tekrar giriş yap.');
+      return;
+    }
+
+    if (!code) {
+      setError('Doğrulama kodu zorunludur.');
       return;
     }
 
@@ -64,13 +69,6 @@ export default function VerifyLoginPage() {
         {error && <div className="alert alert--error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Doğrulama numarası
-            <input
-              value={verificationId}
-              onChange={(event) => setVerificationId(event.target.value)}
-            />
-          </label>
           <label>
             6 haneli kod
             <input

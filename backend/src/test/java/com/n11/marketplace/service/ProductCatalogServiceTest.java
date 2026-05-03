@@ -23,6 +23,7 @@ import com.n11.marketplace.mapper.StoreMapper;
 import com.n11.marketplace.repository.CategoryRepository;
 import com.n11.marketplace.repository.ProductImageRepository;
 import com.n11.marketplace.repository.ProductRepository;
+import com.n11.marketplace.repository.ProductVariantRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +51,9 @@ class ProductCatalogServiceTest {
     @Mock
     private ProductImageRepository productImageRepository;
 
+    @Mock
+    private ProductVariantRepository productVariantRepository;
+
     private ProductCatalogService productCatalogService;
 
     @BeforeEach
@@ -63,6 +67,7 @@ class ProductCatalogServiceTest {
                 productRepository,
                 categoryRepository,
                 productImageRepository,
+                productVariantRepository,
                 productMapper,
                 categoryMapper);
     }

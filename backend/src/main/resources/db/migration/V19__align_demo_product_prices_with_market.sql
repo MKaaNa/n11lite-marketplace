@@ -1,0 +1,65 @@
+UPDATE products SET price = 1499.90 WHERE id = 1;
+UPDATE products SET price = 2699.00 WHERE id = 2;
+UPDATE products SET price = 999.90 WHERE id = 3;
+UPDATE products SET price = 299.90 WHERE id = 4;
+UPDATE products SET price = 1099.00 WHERE id = 5;
+UPDATE products SET price = 1799.90 WHERE id = 6;
+UPDATE products SET price = 1499.90 WHERE id = 7;
+UPDATE products SET price = 899.90 WHERE id = 8;
+UPDATE products SET price = 449.90 WHERE id = 9;
+UPDATE products SET price = 499.90 WHERE id = 10;
+UPDATE products SET price = 569.90 WHERE id = 11;
+UPDATE products SET price = 629.90 WHERE id = 12;
+
+UPDATE products SET price = 2299.90 WHERE id = 13;
+UPDATE products SET price = 2999.00 WHERE id = 14;
+UPDATE products SET price = 799.90 WHERE id = 15;
+UPDATE products SET price = 1199.90 WHERE id = 16;
+UPDATE products SET price = 999.90 WHERE id = 17;
+UPDATE products SET price = 549.90 WHERE id = 18;
+UPDATE products SET price = 1999.00 WHERE id = 19;
+UPDATE products SET price = 699.90 WHERE id = 20;
+UPDATE products SET price = 7499.00 WHERE id = 21;
+UPDATE products SET price = 3399.90 WHERE id = 22;
+
+UPDATE products SET price = 579.90 WHERE id = 23;
+UPDATE products SET price = 539.90 WHERE id = 24;
+UPDATE products SET price = 619.90 WHERE id = 25;
+UPDATE products SET price = 599.90 WHERE id = 26;
+UPDATE products SET price = 479.90 WHERE id = 27;
+UPDATE products SET price = 569.90 WHERE id = 28;
+UPDATE products SET price = 509.90 WHERE id = 29;
+UPDATE products SET price = 549.90 WHERE id = 30;
+UPDATE products SET price = 469.90 WHERE id = 31;
+UPDATE products SET price = 629.90 WHERE id = 32;
+
+UPDATE products SET price = 429.90 WHERE id = 33;
+UPDATE products SET price = 339.90 WHERE id = 34;
+UPDATE products SET price = 729.90 WHERE id = 35;
+UPDATE products SET price = 389.90 WHERE id = 36;
+UPDATE products SET price = 319.90 WHERE id = 37;
+UPDATE products SET price = 289.90 WHERE id = 38;
+UPDATE products SET price = 469.90 WHERE id = 39;
+UPDATE products SET price = 549.90 WHERE id = 40;
+UPDATE products SET price = 249.90 WHERE id = 41;
+UPDATE products SET price = 419.90 WHERE id = 42;
+
+UPDATE products SET price = 949.90 WHERE id = 43;
+UPDATE products SET price = 779.90 WHERE id = 44;
+UPDATE products SET price = 519.90 WHERE id = 45;
+UPDATE products SET price = 629.90 WHERE id = 46;
+UPDATE products SET price = 429.90 WHERE id = 47;
+UPDATE products SET price = 279.90 WHERE id = 48;
+UPDATE products SET price = 839.90 WHERE id = 49;
+UPDATE products SET price = 1249.90 WHERE id = 50;
+UPDATE products SET price = 239.90 WHERE id = 51;
+UPDATE products SET price = 349.90 WHERE id = 52;
+
+UPDATE products SET price = 799.90 WHERE id = 53;
+UPDATE products SET price = 1099.90 WHERE id = 54;
+UPDATE products SET price = 319.90 WHERE id = 55;
+UPDATE products SET price = 529.00 WHERE id = 56;
+UPDATE products SET price = 329.90 WHERE id = 57;
+UPDATE products SET price = 619.90 WHERE id = 58;
+UPDATE products SET price = 449.90 WHERE id = 59;
+UPDATE products SET price = 1049.90 WHERE id = 60;

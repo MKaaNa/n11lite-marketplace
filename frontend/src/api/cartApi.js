@@ -4,10 +4,11 @@ export function getCart() {
   return apiClient.get('/api/cart');
 }
 
-export function addToCart(productId, quantity) {
+export function addToCart(productId, quantity, productVariantId = null) {
   return apiClient.post('/api/cart/items', {
     productId,
     quantity,
+    productVariantId,
   });
 }
 

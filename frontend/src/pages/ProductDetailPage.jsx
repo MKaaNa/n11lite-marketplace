@@ -5,6 +5,7 @@ import { getProductBySlug } from '../api/catalogApi';
 import { getOrCreateSessionId, getRecommendations, trackProductView } from '../api/recommendationApi';
 import { createProductReview, getProductReviews } from '../api/reviewApi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const FALLBACK_IMAGE = 'https://placehold.co/600x600?text=N11Lite';
 
@@ -42,13 +43,13 @@ export default function ProductDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(FALLBACK_IMAGE);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [cartLoading, setCartLoading] = useState(false);
   const [error, setError] = useState('');
-  const [cartMessage, setCartMessage] = useState('');
 
   const [reviewSummary, setReviewSummary] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -59,6 +60,8 @@ export default function ProductDetailPage() {
 
   const [recommendations, setRecommendations] = useState([]);
   const [mainImageError, setMainImageError] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState('');
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   useEffect(() => {
     async function loadProduct() {
@@ -73,6 +76,7 @@ export default function ProductDetailPage() {
         setProduct(productData);
         setSelectedImage(firstImage);
         setMainImageError(false);
+        setSelectedVariantId('');
         setQuantity(1);
 
         const sessionId = getOrCreateSessionId();
@@ -80,7 +84,7 @@ export default function ProductDetailPage() {
 
         const [reviewsRes, recsRes] = await Promise.allSettled([
           getProductReviews(slug),
-          getRecommendations(sessionId),
+          getRecommendations(sessionId, 4, slug),
         ]);
 
         if (reviewsRes.status === 'fulfilled') {
@@ -116,7 +120,6 @@ export default function ProductDetailPage() {
   }
 
   async function addSelectedProductToCart({ goToCart = false } = {}) {
-    setCartMessage('');
     setError('');
 
     if (!user) {
@@ -128,14 +131,20 @@ export default function ProductDetailPage() {
       return;
     }
 
+    const hasVariants = Boolean(product?.variants?.length);
+    if (hasVariants && !selectedVariantId) {
+      setError('Bu ürün için beden/numara seçmelisin.');
+      return;
+    }
+
     try {
       setCartLoading(true);
-      await addToCart(product.id, quantity);
+      await addToCart(product.id, quantity, selectedVariantId ? Number(selectedVariantId) : null);
       if (goToCart) {
         navigate('/cart');
         return;
       }
-      setCartMessage('Ürün sepete eklendi.');
+      showToast('Ürün sepete eklendi.', 'success');
     } catch {
       setError(goToCart
         ? 'Satın alma adımı başlatılamadı. Lütfen tekrar dene.'
@@ -179,27 +188,33 @@ export default function ProductDetailPage() {
     { id: 'fallback', imageUrl: FALLBACK_IMAGE, displayOrder: 1 },
   ];
   const priceModel = product ? getPriceModel(product) : null;
+  const hasVariants = Boolean(product?.variants?.length);
+  const currentStock = hasVariants && selectedVariantId
+    ? (product.variants.find((variant) => String(variant.id) === selectedVariantId)?.stock ?? product.stock)
+    : product?.stock;
+  const showLowStockWarning = Number(currentStock) > 0 && Number(currentStock) <= 3;
 
   return (
     <main className="catalog-page">
+      {!loading && !error && product && (
+        <nav className="breadcrumb" aria-label="Breadcrumb">
+          <Link to="/products">Anasayfa</Link>
+          <span>/</span>
+          {product.category?.slug ? (
+            <Link to={`/products?category=${product.category.slug}`}>{product.category?.name || 'Kategori'}</Link>
+          ) : (
+            <span>{product.category?.name || 'Kategori'}</span>
+          )}
+          <span>/</span>
+          <span>{product.name}</span>
+        </nav>
+      )}
       <Link className="back-link" to="/products">
         Ürünlere dön
       </Link>
 
       {loading && <div className="alert alert--loading">Ürün yükleniyor...</div>}
       {error && <div className="alert alert--error">{error}</div>}
-      {cartMessage && (
-        <div className="cart-success-panel">
-          <p>{cartMessage}</p>
-          <div className="cart-success-actions">
-            <Link className="primary-button" to="/cart">Sepete Git</Link>
-            <button type="button" onClick={() => setCartMessage('')}>
-              Alışverişe Devam Et
-            </button>
-          </div>
-        </div>
-      )}
-
       {!loading && !error && product && (
         <>
           <section className="product-detail">
@@ -215,7 +230,11 @@ export default function ProductDetailPage() {
                   alt={product.name}
                   className="main-image"
                   onError={() => setMainImageError(true)}
+                  onClick={() => setIsZoomOpen(true)}
                 />
+                <button type="button" className="zoom-trigger" onClick={() => setIsZoomOpen(true)}>
+                  Görseli Yakınlaştır
+                </button>
               </div>
 
               <div className="thumbnail-list">
@@ -256,12 +275,31 @@ export default function ProductDetailPage() {
               <p className="detail-description">{product.description}</p>
 
               <div className="detail-meta">
-                <span>Stok: {product.stock}</span>
+                <span>Stok: {currentStock}</span>
                 <span>Satılan: {product.soldCount}</span>
                 <span>Görüntülenme: {product.viewCount}</span>
               </div>
+              {showLowStockWarning && (
+                <div className="low-stock-badge">Son {currentStock} ürün!</div>
+              )}
 
               <div className="add-cart-panel">
+                {hasVariants && (
+                  <label className="product-variant-select">
+                    <span>Beden / Numara</span>
+                    <select
+                      value={selectedVariantId}
+                      onChange={(event) => setSelectedVariantId(event.target.value)}
+                    >
+                      <option value="">Seçiniz</option>
+                      {product.variants.map((variant) => (
+                        <option key={variant.id} value={variant.id} disabled={variant.stock <= 0}>
+                          {variant.variantValue} {variant.stock <= 0 ? '(Tükendi)' : `(${variant.stock} stok)`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <div className="quantity-controls">
                   <button type="button" onClick={decreaseQuantity} disabled={quantity <= 1}>
                     -
@@ -279,7 +317,7 @@ export default function ProductDetailPage() {
                   type="button"
                   className="primary-button"
                   onClick={handleAddToCart}
-                  disabled={cartLoading || product.stock <= 0}
+                  disabled={cartLoading || product.stock <= 0 || (hasVariants && !selectedVariantId)}
                 >
                   {cartLoading ? 'Ekleniyor...' : 'Sepete Ekle'}
                 </button>
@@ -287,7 +325,7 @@ export default function ProductDetailPage() {
                   type="button"
                   className="buy-now-button"
                   onClick={handleBuyNow}
-                  disabled={cartLoading || product.stock <= 0}
+                  disabled={cartLoading || product.stock <= 0 || (hasVariants && !selectedVariantId)}
                 >
                   {cartLoading ? 'Hazırlanıyor...' : 'Hemen Satın Al'}
                 </button>
@@ -305,9 +343,11 @@ export default function ProductDetailPage() {
                     {product.store.official && <span className="official-store">Resmi Mağaza</span>}
                   </p>
                   {product.store.rating != null && (
-                    <p className="store-rating">Puan: {product.store.rating}</p>
+                    <p className="store-rating">
+                      <span className="store-rating-star">★</span> Puan: {product.store.rating}
+                    </p>
                   )}
-                  <p className="store-panel-hint">Yorumları görmek için tıkla</p>
+                  <p className="store-panel-hint">Yorumları ve mağaza değerlendirmesini görüntüle</p>
                 </Link>
               ) : (
                 <div className="store-panel">
@@ -323,6 +363,20 @@ export default function ProductDetailPage() {
               )}
             </div>
           </section>
+          <div className="sticky-add-to-cart-mobile">
+            <div>
+              <strong>{formatPrice(priceModel?.currentPrice || product.price)}</strong>
+              {showLowStockWarning && <span>Son {currentStock} ürün</span>}
+            </div>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleAddToCart}
+              disabled={cartLoading || product.stock <= 0 || (hasVariants && !selectedVariantId)}
+            >
+              {cartLoading ? 'Ekleniyor...' : 'Sepete Ekle'}
+            </button>
+          </div>
 
           <section className="reviews-section">
             <h2>Müşteri Yorumları</h2>
@@ -427,6 +481,14 @@ export default function ProductDetailPage() {
                 ))}
               </div>
             </section>
+          )}
+          {isZoomOpen && (
+            <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={`${product.name} yakınlaştırılmış görsel`}>
+              <button type="button" className="image-lightbox-close" onClick={() => setIsZoomOpen(false)}>
+                Kapat
+              </button>
+              <img src={mainImageError ? FALLBACK_IMAGE : selectedImage} alt={product.name} />
+            </div>
           )}
         </>
       )}

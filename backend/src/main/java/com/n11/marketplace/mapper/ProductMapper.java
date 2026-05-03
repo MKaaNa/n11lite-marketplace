@@ -3,6 +3,7 @@ package com.n11.marketplace.mapper;
 import com.n11.marketplace.dto.response.ProductDetailResponse;
 import com.n11.marketplace.dto.response.ProductImageResponse;
 import com.n11.marketplace.dto.response.ProductSummaryResponse;
+import com.n11.marketplace.dto.response.ProductVariantOptionResponse;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.ProductImage;
 import java.util.List;
@@ -37,7 +38,10 @@ public class ProductMapper {
                 storeMapper.toResponse(product.getStore()));
     }
 
-    public ProductDetailResponse toDetail(Product product, List<ProductImage> images) {
+    public ProductDetailResponse toDetail(
+            Product product,
+            List<ProductImage> images,
+            List<ProductVariantOptionResponse> variants) {
         List<ProductImageResponse> imageResponses = images.stream()
                 .map(productImageMapper::toResponse)
                 .toList();
@@ -54,7 +58,8 @@ public class ProductMapper {
                 getBadgeName(product),
                 categoryMapper.toResponse(product.getCategory()),
                 storeMapper.toResponse(product.getStore()),
-                imageResponses);
+                imageResponses,
+                variants);
     }
 
     private String getBadgeName(Product product) {

@@ -17,12 +17,14 @@ import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.Store;
 import com.n11.marketplace.entity.User;
+import com.n11.marketplace.entity.UserAddress;
 import com.n11.marketplace.enums.DiscountType;
 import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.mapper.OrderMapper;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.OrderRepository;
+import com.n11.marketplace.repository.UserAddressRepository;
 import com.n11.marketplace.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,13 +50,22 @@ class OrderServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private UserAddressRepository userAddressRepository;
+
+    @Mock
     private CouponService couponService;
 
     private OrderService orderService;
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, cartRepository, userRepository, new OrderMapper(), couponService);
+        orderService = new OrderService(
+                orderRepository,
+                cartRepository,
+                userRepository,
+                userAddressRepository,
+                new OrderMapper(),
+                couponService);
     }
 
     @Test
@@ -269,6 +280,32 @@ class OrderServiceTest {
         return cart;
     }
 
+    @Test
+    void createOrderResolvesSavedAddress() {
+        User user = createUser("user@test.com");
+        Product product = createProduct(10L, 5);
+        Cart cart = createCart(1L, user);
+        cart.addItem(createCartItem(100L, cart, product, 1));
+        UserAddress saved = new UserAddress(user, "Ev", "Kayitli adres satiri", true);
+        ReflectionTestUtils.setField(saved, "id", 9L);
+
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(cart));
+        when(userAddressRepository.findByIdAndUser_Email(9L, user.getEmail())).thenReturn(Optional.of(saved));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            ReflectionTestUtils.setField(order, "id", 51L);
+            return order;
+        });
+
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setSavedAddressId(9L);
+        OrderResponse response = orderService.createOrder(user.getEmail(), request);
+
+        assertEquals(51L, response.getId());
+        verify(orderRepository).save(org.mockito.ArgumentMatchers.argThat(o -> "Kayitli adres satiri".equals(o.getShippingAddress())));
+    }
+
     private Product createProduct(Long id, Integer stock) {
         Category category = new Category("Books", "books");
         Store store = new Store("BookNest");
@@ -284,7 +321,7 @@ class OrderServiceTest {
     }
 
     private CartItem createCartItem(Long id, Cart cart, Product product, Integer quantity) {
-        CartItem item = new CartItem(cart, product, quantity);
+        CartItem item = new CartItem(cart, product, null, quantity);
         ReflectionTestUtils.setField(item, "id", id);
         return item;
     }

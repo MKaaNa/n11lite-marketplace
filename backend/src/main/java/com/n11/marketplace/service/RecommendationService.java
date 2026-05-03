@@ -52,7 +52,34 @@ public class RecommendationService {
 
     @Transactional(readOnly = true)
     public List<RecommendedProductResponse> getRecommendations(String sessionId, int limit) {
-        if (sessionId != null && !sessionId.isBlank()) {
+        return getRecommendations(sessionId, limit, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecommendedProductResponse> getRecommendations(String sessionId, int limit, String currentSlug) {
+        Map<Long, Product> recommendedById = new LinkedHashMap<>();
+        Long currentProductId = null;
+
+        if (currentSlug != null && !currentSlug.isBlank()) {
+            Product currentProduct = productRepository.findBySlug(currentSlug)
+                    .filter(Product::isActive)
+                    .orElse(null);
+            if (currentProduct != null && currentProduct.getCategory() != null) {
+                currentProductId = currentProduct.getId();
+                final Long excludedProductId = currentProductId;
+                List<Product> sameCategoryCandidates = productRepository.findByCategoryIdsOrderByViewCountDesc(
+                        List.of(currentProduct.getCategory().getId()),
+                        PageRequest.of(0, Math.max(limit * 3, 12)));
+                appendUniqueProducts(
+                        recommendedById,
+                        sameCategoryCandidates.stream()
+                                .filter(candidate -> !candidate.getId().equals(excludedProductId))
+                                .toList(),
+                        limit);
+            }
+        }
+
+        if (recommendedById.size() < limit && sessionId != null && !sessionId.isBlank()) {
             List<ProductView> recentViews = productViewRepository.findRecentViewsWithProductAndCategory(
                     sessionId, PageRequest.of(0, 20));
 
@@ -62,26 +89,50 @@ public class RecommendationService {
                         .collect(Collectors.toSet());
 
                 List<Long> categoryIds = recentViews.stream()
-                        .map(pv -> pv.getProduct().getCategory().getId())
+                        .map(ProductView::getProduct)
+                        .filter(product -> product.getCategory() != null)
+                        .map(product -> product.getCategory().getId())
                         .distinct()
                         .toList();
 
-                List<Product> candidates = productRepository.findByCategoryIdsOrderByViewCountDesc(
-                        categoryIds, PageRequest.of(0, limit + viewedProductIds.size()));
+                if (!categoryIds.isEmpty()) {
+                    List<Product> candidates = productRepository.findByCategoryIdsOrderByViewCountDesc(
+                            categoryIds, PageRequest.of(0, limit + viewedProductIds.size()));
 
-                List<Product> recommended = candidates.stream()
-                        .filter(p -> !viewedProductIds.contains(p.getId()))
-                        .limit(limit)
-                        .toList();
+                    List<Product> sessionBased = candidates.stream()
+                            .filter(p -> !viewedProductIds.contains(p.getId()))
+                            .toList();
 
-                if (!recommended.isEmpty()) {
-                    return toRecommendedResponses(recommended);
+                    appendUniqueProducts(recommendedById, sessionBased, limit);
                 }
             }
         }
 
-        List<Product> popular = productRepository.findPopularProducts(PageRequest.of(0, limit));
-        return toRecommendedResponses(popular);
+        if (recommendedById.size() < limit) {
+            List<Product> popular = productRepository.findPopularProducts(PageRequest.of(0, limit * 3));
+            if (currentProductId != null) {
+                final Long excludedProductId = currentProductId;
+                appendUniqueProducts(
+                        recommendedById,
+                        popular.stream()
+                                .filter(product -> !product.getId().equals(excludedProductId))
+                                .toList(),
+                        limit);
+            } else {
+                appendUniqueProducts(recommendedById, popular, limit);
+            }
+        }
+
+        return toRecommendedResponses(recommendedById.values().stream().limit(limit).toList());
+    }
+
+    private void appendUniqueProducts(Map<Long, Product> target, List<Product> source, int limit) {
+        for (Product product : source) {
+            if (target.size() >= limit) {
+                return;
+            }
+            target.putIfAbsent(product.getId(), product);
+        }
     }
 
     private List<RecommendedProductResponse> toRecommendedResponses(List<Product> products) {

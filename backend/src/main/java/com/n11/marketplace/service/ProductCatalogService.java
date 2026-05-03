@@ -3,15 +3,18 @@ package com.n11.marketplace.service;
 import com.n11.marketplace.dto.response.CategoryResponse;
 import com.n11.marketplace.dto.response.ProductDetailResponse;
 import com.n11.marketplace.dto.response.ProductSummaryResponse;
+import com.n11.marketplace.dto.response.ProductVariantOptionResponse;
 import com.n11.marketplace.entity.Category;
 import com.n11.marketplace.entity.Product;
 import com.n11.marketplace.entity.ProductImage;
+import com.n11.marketplace.entity.ProductVariant;
 import com.n11.marketplace.exception.BusinessException;
 import com.n11.marketplace.mapper.CategoryMapper;
 import com.n11.marketplace.mapper.ProductMapper;
 import com.n11.marketplace.repository.CategoryRepository;
 import com.n11.marketplace.repository.ProductImageRepository;
 import com.n11.marketplace.repository.ProductRepository;
+import com.n11.marketplace.repository.ProductVariantRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,6 +29,7 @@ public class ProductCatalogService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
 
@@ -33,11 +37,13 @@ public class ProductCatalogService {
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
             ProductImageRepository productImageRepository,
+            ProductVariantRepository productVariantRepository,
             ProductMapper productMapper,
             CategoryMapper categoryMapper) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.productImageRepository = productImageRepository;
+        this.productVariantRepository = productVariantRepository;
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
     }
@@ -85,7 +91,13 @@ public class ProductCatalogService {
                 .orElseThrow(() -> new BusinessException("Product not found", HttpStatus.NOT_FOUND));
 
         List<ProductImage> images = productImageRepository.findByProductIdOrderByDisplayOrderAsc(product.getId());
-        return productMapper.toDetail(product, images);
+        List<ProductVariantOptionResponse> variants = List.of();
+        if (isFashionProduct(product)) {
+            variants = productVariantRepository.findByProductIdAndActiveTrueOrderByVariantValueAsc(product.getId()).stream()
+                    .map(this::toVariantResponse)
+                    .toList();
+        }
+        return productMapper.toDetail(product, images, variants);
     }
 
     public List<CategoryResponse> getActiveCategories() {
@@ -93,5 +105,19 @@ public class ProductCatalogService {
         return categories.stream()
                 .map(categoryMapper::toResponse)
                 .toList();
+    }
+
+    private boolean isFashionProduct(Product product) {
+        return product.getCategory() != null
+                && product.getCategory().getSlug() != null
+                && product.getCategory().getSlug().equals("fashion");
+    }
+
+    private ProductVariantOptionResponse toVariantResponse(ProductVariant variant) {
+        return new ProductVariantOptionResponse(
+                variant.getId(),
+                variant.getVariantType(),
+                variant.getVariantValue(),
+                variant.getStock());
     }
 }

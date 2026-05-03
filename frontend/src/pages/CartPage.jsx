@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { listAddresses } from '../api/addressApi';
 import { clearCart, getCart, removeCartItem, updateCartItem } from '../api/cartApi';
 import { validateCoupon } from '../api/couponApi';
 import { createOrder } from '../api/orderApi';
 import { getPaymentStatus, initiatePayment } from '../api/paymentApi';
+import { listPaymentCards } from '../api/paymentCardsApi';
+import { useToast } from '../context/ToastContext';
 
 const FALLBACK_IMAGE = 'https://placehold.co/300x300?text=N11Lite';
 
@@ -15,6 +18,7 @@ function formatPrice(price) {
 }
 
 export default function CartPage() {
+  const { showToast } = useToast();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -31,10 +35,20 @@ export default function CartPage() {
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [startingPayment, setStartingPayment] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [addressSource, setAddressSource] = useState('manual');
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [savedCards, setSavedCards] = useState([]);
 
   useEffect(() => {
     loadCart();
   }, []);
+
+  useEffect(() => {
+    if (!loading && cart) {
+      loadCheckoutExtras();
+    }
+  }, [loading, cart]);
 
   async function loadCart() {
     setLoading(true);
@@ -48,6 +62,20 @@ export default function CartPage() {
       setError('Sepet yüklenemedi.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCheckoutExtras() {
+    try {
+      const [addrRes, cardRes] = await Promise.all([
+        listAddresses(),
+        listPaymentCards(),
+      ]);
+      setSavedAddresses(addrRes.data || []);
+      setSavedCards(cardRes.data || []);
+    } catch {
+      setSavedAddresses([]);
+      setSavedCards([]);
     }
   }
 
@@ -156,6 +184,7 @@ export default function CartPage() {
       setAppliedCoupon(response.data);
       setCouponCode(response.data.code);
       setMessage('Kupon uygulandı.');
+      showToast('Kupon uygulandı.', 'success');
     } catch (err) {
       setAppliedCoupon(null);
       setError(err.response?.data?.message || 'Kupon uygulanamadı.');
@@ -176,7 +205,12 @@ export default function CartPage() {
   }
 
   async function handleCreateOrder() {
-    if (!shippingAddress.trim()) {
+    if (addressSource === 'saved') {
+      if (!selectedAddressId) {
+        setError('Kayıtlı adres seç veya manuel adres kullan.');
+        return;
+      }
+    } else if (!shippingAddress.trim()) {
       setError('Teslimat adresi girmelisin.');
       return;
     }
@@ -191,7 +225,8 @@ export default function CartPage() {
 
     try {
       const response = await createOrder({
-        shippingAddress: shippingAddress.trim(),
+        shippingAddress: addressSource === 'manual' ? shippingAddress.trim() : null,
+        savedAddressId: addressSource === 'saved' ? Number(selectedAddressId) : null,
         couponCode: appliedCoupon?.code || null,
       });
       setCreatedOrder(response.data);
@@ -289,7 +324,11 @@ export default function CartPage() {
 
   const items = cart?.items || [];
   const finalTotal = appliedCoupon?.finalTotal ?? cart?.totalAmount;
-  const canCreateOrder = items.length > 0 && shippingAddress.trim() && !createdOrder && !creatingOrder && !startingPayment;
+  const addressReady = addressSource === 'saved'
+    ? Boolean(selectedAddressId)
+    : Boolean(shippingAddress.trim());
+  const canCreateOrder = items.length > 0 && addressReady && !createdOrder && !creatingOrder && !startingPayment;
+  const checkoutStep = paymentInfo?.paymentPageUrl ? 3 : (createdOrder ? 2 : 1);
 
   return (
     <main className="catalog-page">
@@ -301,6 +340,20 @@ export default function CartPage() {
         <Link className="details-link" to="/products">
           Alışverişe Devam Et
         </Link>
+      </section>
+      <section className="checkout-stepper" aria-label="Checkout adımları">
+        <div className={checkoutStep >= 1 ? 'checkout-step active' : 'checkout-step'}>
+          <span>1</span>
+          <p>Sepet</p>
+        </div>
+        <div className={checkoutStep >= 2 ? 'checkout-step active' : 'checkout-step'}>
+          <span>2</span>
+          <p>Adres</p>
+        </div>
+        <div className={checkoutStep >= 3 ? 'checkout-step active' : 'checkout-step'}>
+          <span>3</span>
+          <p>Ödeme</p>
+        </div>
       </section>
 
       {loading && <div className="alert alert--loading">Sepet yükleniyor...</div>}
@@ -335,6 +388,11 @@ export default function CartPage() {
                 <div className="cart-item-info">
                   <Link to={`/products/${item.productSlug}`}>{item.productName}</Link>
                   {item.storeName && <p>{item.storeName}</p>}
+                  {item.variantValue && (
+                    <p>
+                      {item.variantType || 'Varyant'}: {item.variantValue}
+                    </p>
+                  )}
                   <p>Birim fiyat: {formatPrice(item.unitPrice)}</p>
                 </div>
 
@@ -404,19 +462,107 @@ export default function CartPage() {
               Bu ekrandan sipariş oluşturabilir ve Iyzico ödeme akışını başlatabilirsin.
               Sandbox bilgileri tanımlı değilse ödeme sayfası yerine bilgilendirme gösterilir.
             </p>
+            <div className="trust-badges">
+              <span>SSL Güvenli Ödeme</span>
+              <span>Kolay İade Desteği</span>
+              <span>7/24 Müşteri Desteği</span>
+            </div>
 
             <div className="checkout-panel">
+              <fieldset className="address-source-fieldset">
+                <legend>Teslimat adresi</legend>
+                <label className="radio-line">
+                  <input
+                    type="radio"
+                    name="addressSource"
+                    checked={addressSource === 'manual'}
+                    onChange={() => {
+                      setAddressSource('manual');
+                      setSelectedAddressId('');
+                    }}
+                    disabled={Boolean(createdOrder) || creatingOrder}
+                  />
+                  Yeni adres yaz
+                </label>
+                <label className="radio-line">
+                  <input
+                    type="radio"
+                    name="addressSource"
+                    checked={addressSource === 'saved'}
+                    onChange={() => setAddressSource('saved')}
+                    disabled={Boolean(createdOrder) || creatingOrder || savedAddresses.length === 0}
+                  />
+                  Kayıtlı adres
+                  {savedAddresses.length === 0 && ' (önce adres kaydet)'}
+                </label>
+                <Link className="details-link" to="/account/addresses">
+                  Adreslerimi Yönet
+                </Link>
+              </fieldset>
+
+              {addressSource === 'saved' && (
+                <label htmlFor="savedAddressSelect" className="saved-address-select">
+                  Kayıtlı adres seç
+                  <select
+                    id="savedAddressSelect"
+                    value={selectedAddressId}
+                    onChange={(e) => setSelectedAddressId(e.target.value)}
+                    disabled={Boolean(createdOrder) || creatingOrder}
+                  >
+                    <option value="">— Seç —</option>
+                    {savedAddresses.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}
+                        {a.defaultAddress ? ' (varsayılan)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
               <label htmlFor="shippingAddress">
-                Teslimat Adresi
+                {addressSource === 'saved' ? 'Önizleme (siparişte kayıtlı metin kullanılır)' : 'Teslimat adresi'}
                 <textarea
                   id="shippingAddress"
-                  value={shippingAddress}
-                  onChange={(event) => setShippingAddress(event.target.value)}
+                  value={
+                    addressSource === 'saved' && selectedAddressId
+                      ? (savedAddresses.find((a) => String(a.id) === String(selectedAddressId))?.fullAddress || '')
+                      : shippingAddress
+                  }
+                  onChange={(event) => {
+                    if (addressSource === 'manual') {
+                      setShippingAddress(event.target.value);
+                    }
+                  }}
                   rows={4}
                   placeholder="Mahalle, cadde, bina no, ilçe / il"
+                  readOnly={addressSource === 'saved'}
                   disabled={Boolean(createdOrder) || creatingOrder}
                 />
               </label>
+
+              <div className="saved-cards-panel">
+                <h3>Kayıtlı kartlar (Iyzico)</h3>
+                <p className="checkout-note subtle">
+                  Sandbox test kartı bilgileri Iyzico dokümantasyonundan alınmalıdır; güvenlik nedeniyle tam kart numarası
+                  uygulamada saklanmaz veya önceden doldurulmaz. Kayıtlı kartlar yalnızca maskeli bilgi ve son dört hane ile
+                  gösterilir.
+                </p>
+                {savedCards.length > 0 && (
+                  <ul className="saved-card-list">
+                    {savedCards.map((c) => (
+                      <li key={c.cardToken}>
+                        <span>
+                          {c.cardAlias || 'Kart'} · **** {c.lastFourDigits || '????'} ({c.cardAssociation || '—'})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link className="details-link" to="/account/cards">
+                  Kartlarımı Yönet
+                </Link>
+              </div>
 
               <button
                 type="button"
