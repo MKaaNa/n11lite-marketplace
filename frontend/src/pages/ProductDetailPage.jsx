@@ -162,6 +162,15 @@ export default function ProductDetailPage() {
     addSelectedProductToCart({ goToCart: true });
   }
 
+  function handleUseProductCoupon() {
+    if (!product?.productCouponCode) {
+      return;
+    }
+    navigate('/cart', {
+      state: { prefillCoupon: product.productCouponCode },
+    });
+  }
+
   async function handleReviewSubmit(e) {
     e.preventDefault();
     setReviewMessage('');
@@ -273,6 +282,18 @@ export default function ProductDetailPage() {
                 )}
               </div>
               <p className="detail-description">{product.description}</p>
+              {product.productCouponCode && (
+                <div className="product-coupon-box">
+                  <p className="product-coupon-title">Bu ürüne özel kupon</p>
+                  <code>{product.productCouponCode}</code>
+                  <p className="product-coupon-note">
+                    {product.productCouponLabel || 'Bu kupon sadece bu üründe geçerlidir.'}
+                  </p>
+                  <button type="button" className="secondary-button" onClick={handleUseProductCoupon}>
+                    Kuponu Sepette Kullan
+                  </button>
+                </div>
+              )}
 
               <div className="detail-meta">
                 <span>Stok: {currentStock}</span>

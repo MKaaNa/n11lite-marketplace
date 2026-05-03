@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { listAddresses } from '../api/addressApi';
 import { clearCart, getCart, removeCartItem, updateCartItem } from '../api/cartApi';
 import { validateCoupon } from '../api/couponApi';
@@ -19,6 +19,7 @@ function formatPrice(price) {
 
 export default function CartPage() {
   const { showToast } = useToast();
+  const location = useLocation();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -49,6 +50,14 @@ export default function CartPage() {
       loadCheckoutExtras();
     }
   }, [loading, cart]);
+
+  useEffect(() => {
+    const suggestedCoupon = location.state?.prefillCoupon;
+    if (typeof suggestedCoupon === 'string' && suggestedCoupon.trim()) {
+      setCouponCode(suggestedCoupon.trim());
+      showToast('Ürüne özel kupon hazır: sepette uygula.', 'info');
+    }
+  }, [location.state, showToast]);
 
   async function loadCart() {
     setLoading(true);
@@ -324,6 +333,7 @@ export default function CartPage() {
 
   const items = cart?.items || [];
   const finalTotal = appliedCoupon?.finalTotal ?? cart?.totalAmount;
+  const installmentEligible = Number(finalTotal || 0) >= 5000;
   const addressReady = addressSource === 'saved'
     ? Boolean(selectedAddressId)
     : Boolean(shippingAddress.trim());
@@ -462,6 +472,11 @@ export default function CartPage() {
               Bu ekrandan sipariş oluşturabilir ve Iyzico ödeme akışını başlatabilirsin.
               Sandbox bilgileri tanımlı değilse ödeme sayfası yerine bilgilendirme gösterilir.
             </p>
+            {installmentEligible && (
+              <p className="checkout-note subtle">
+                Bu tutarda 2-3 taksit seçenekleri ödeme sayfasında sunulabilir.
+              </p>
+            )}
             <div className="trust-badges">
               <span>SSL Güvenli Ödeme</span>
               <span>Kolay İade Desteği</span>

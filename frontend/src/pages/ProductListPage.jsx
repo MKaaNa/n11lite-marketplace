@@ -4,8 +4,8 @@ import CategoryFilter from '../components/CategoryFilter';
 import ProductCard from '../components/ProductCard';
 import SearchBar from '../components/SearchBar';
 
-const PAGE_SIZE = 12;
-const SKELETON_COUNT = 12;
+const PAGE_SIZE = 15;
+const SKELETON_COUNT = 15;
 
 /** 0-based page index; max 5 page buttons in the sliding window. */
 function getVisiblePageIndices(currentPage, totalPages, maxButtons = 5) {
@@ -201,7 +201,7 @@ export default function ProductListPage() {
             ))}
             <button
               type="button"
-              disabled={productsPage.last}
+              disabled={productsPage.last || products.length < PAGE_SIZE}
               onClick={() => setPage((currentPage) => currentPage + 1)}
             >
               Sonraki

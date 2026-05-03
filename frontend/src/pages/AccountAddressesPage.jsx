@@ -5,6 +5,7 @@ import {
   deleteAddress,
   listAddresses,
   setDefaultAddress,
+  updateAddress,
 } from '../api/addressApi';
 import { useToast } from '../context/ToastContext';
 
@@ -18,6 +19,7 @@ export default function AccountAddressesPage() {
     label: '',
     fullAddress: '',
   });
+  const [editingAddressId, setEditingAddressId] = useState(null);
 
   useEffect(() => {
     loadAddresses();
@@ -86,6 +88,48 @@ export default function AccountAddressesPage() {
     }
   }
 
+  function handleStartEdit(address) {
+    setEditingAddressId(address.id);
+    setForm({
+      label: address.label || '',
+      fullAddress: address.fullAddress || '',
+    });
+  }
+
+  function handleCancelEdit() {
+    setEditingAddressId(null);
+    setForm({ label: '', fullAddress: '' });
+    setError('');
+  }
+
+  async function handleUpdateAddress(event) {
+    event.preventDefault();
+    if (!editingAddressId) {
+      return;
+    }
+    if (!form.label.trim() || !form.fullAddress.trim()) {
+      setError('Adres etiketi ve adres metni zorunludur.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const current = addresses.find((a) => a.id === editingAddressId);
+      await updateAddress(editingAddressId, {
+        label: form.label.trim(),
+        fullAddress: form.fullAddress.trim(),
+        defaultAddress: current?.defaultAddress || false,
+      });
+      showToast('Adres güncellendi.', 'success');
+      handleCancelEdit();
+      await loadAddresses();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Adres güncellenemedi.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <main className="catalog-page account-page">
       <section className="account-header">
@@ -120,6 +164,7 @@ export default function AccountAddressesPage() {
                 <p className="account-item-body">{address.fullAddress}</p>
               </div>
               <div className="account-item-actions">
+                <button type="button" onClick={() => handleStartEdit(address)}>Düzenle</button>
                 {!address.defaultAddress && (
                   <button type="button" onClick={() => handleSetDefault(address.id)}>Varsayılan Yap</button>
                 )}
@@ -130,8 +175,8 @@ export default function AccountAddressesPage() {
         </div>
 
         <aside className="account-form-panel">
-          <h2>Yeni Adres Ekle</h2>
-          <form className="account-form" onSubmit={handleCreateAddress}>
+          <h2>{editingAddressId ? 'Adresi Düzenle' : 'Yeni Adres Ekle'}</h2>
+          <form className="account-form" onSubmit={editingAddressId ? handleUpdateAddress : handleCreateAddress}>
             <label>
               Adres etiketi
               <input
@@ -149,9 +194,16 @@ export default function AccountAddressesPage() {
                 placeholder="Mahalle, cadde, bina no, ilçe / il"
               />
             </label>
-            <button type="submit" className="primary-button" disabled={saving}>
-              {saving ? 'Kaydediliyor...' : 'Adresi Kaydet'}
-            </button>
+            <div className="account-form-actions">
+              <button type="submit" className="primary-button" disabled={saving}>
+                {saving ? 'Kaydediliyor...' : editingAddressId ? 'Adresi Güncelle' : 'Adresi Kaydet'}
+              </button>
+              {editingAddressId && (
+                <button type="button" onClick={handleCancelEdit} disabled={saving}>
+                  İptal
+                </button>
+              )}
+            </div>
           </form>
         </aside>
       </section>

@@ -12,6 +12,10 @@ export function verifyLogin(request) {
   return apiClient.post('/api/auth/verify-login', request);
 }
 
+export function resendLoginVerification(request) {
+  return apiClient.post('/api/auth/resend-login-verification', request);
+}
+
 export function getCurrentUser() {
   return apiClient.get('/api/auth/me');
 }
