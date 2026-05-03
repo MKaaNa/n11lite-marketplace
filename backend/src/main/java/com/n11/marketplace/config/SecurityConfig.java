@@ -48,7 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/products",
                                 "/api/products/{slug}",
-                                "/api/products/{slug}/reviews")
+                                "/api/products/{slug}/reviews",
+                                "/api/stores/*/reviews")
                         .permitAll()
                         .requestMatchers(
                                 "/api/health",
@@ -75,11 +76,19 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173"));
+        configuration.setAllowedOriginPatterns(List.of("https://*.iyzipay.com"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Session-Id"));
         configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration iyzicoCallbackConfiguration = new CorsConfiguration();
+        iyzicoCallbackConfiguration.setAllowedOriginPatterns(List.of("*"));
+        iyzicoCallbackConfiguration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        iyzicoCallbackConfiguration.setAllowedHeaders(List.of("*"));
+        iyzicoCallbackConfiguration.setAllowCredentials(false);
+
+        source.registerCorsConfiguration("/api/payments/iyzico/callback", iyzicoCallbackConfiguration);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

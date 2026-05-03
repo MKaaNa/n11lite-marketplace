@@ -22,6 +22,7 @@ import com.n11.marketplace.entity.Store;
 import com.n11.marketplace.entity.User;
 import com.n11.marketplace.enums.Role;
 import com.n11.marketplace.exception.BusinessException;
+import com.n11.marketplace.config.IyzicoProperties;
 import com.n11.marketplace.payment.IyzicoPaymentClient;
 import com.n11.marketplace.repository.CartRepository;
 import com.n11.marketplace.repository.OrderRepository;
@@ -128,6 +129,61 @@ class PaymentServiceTest {
         assertEquals("https://sandbox-checkout.iyzico.com/pay", response.getPaymentPageUrl());
         assertEquals("PENDING", response.getStatus());
         verify(paymentRepository).save(any(Payment.class));
+    }
+
+    @Test
+    void initiateCheckoutRejectsNonPositiveOrderTotal() {
+        IyzicoProperties props = new IyzicoProperties();
+        props.setApiKey("sandbox-api-key");
+        props.setSecretKey("sandbox-secret-key");
+        props.setBaseUrl("https://sandbox-api.iyzipay.com");
+        props.setCallbackUrl("http://localhost:8080/api/payments/iyzico/callback");
+        IyzicoPaymentClient realClient = new IyzicoPaymentClient(props);
+        paymentService = new PaymentService(
+                paymentRepository,
+                orderRepository,
+                cartRepository,
+                productRepository,
+                realClient,
+                couponService);
+
+        User user = createUser();
+        Product product = createProduct(10L, 5);
+        Order order = createOrder(50L, user, product, 2);
+        order.setTotalAmount(BigDecimal.ZERO);
+        when(orderRepository.findByIdAndUserEmail(50L, user.getEmail())).thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrderId(order.getId())).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paymentService.initiateCheckout(user.getEmail(), order.getId()));
+
+        assertEquals(
+                "Ödeme bilgileri eksik veya geçersiz. Lütfen siparişini kontrol edip tekrar dene.",
+                exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void initiateCheckoutRejectsWhenIyzicoReturnsFailure() {
+        User user = createUser();
+        Order order = createOrder(50L, user, createProduct(10L, 5), 2);
+        when(iyzicoPaymentClient.isConfigured()).thenReturn(true);
+        when(orderRepository.findByIdAndUserEmail(50L, user.getEmail())).thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrderId(order.getId())).thenReturn(Optional.empty());
+        when(iyzicoPaymentClient.initializeCheckout(order)).thenReturn(
+                new IyzicoPaymentClient.CheckoutInitializeResult(false, null, null, "sandbox-error"));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paymentService.initiateCheckout(user.getEmail(), order.getId()));
+
+        assertEquals(
+                "Ödeme şu an başlatılamıyor. Lütfen bir süre sonra tekrar dene.",
+                exception.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     @Test

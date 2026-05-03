@@ -16,8 +16,12 @@ import com.iyzipay.request.RetrieveCheckoutFormRequest;
 import com.n11.marketplace.config.IyzicoProperties;
 import com.n11.marketplace.entity.Order;
 import com.n11.marketplace.entity.OrderItem;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -34,14 +38,37 @@ public class IyzicoPaymentClient {
     }
 
     public CheckoutInitializeResult initializeCheckout(Order order) {
-        CheckoutFormInitialize checkoutForm = CheckoutFormInitialize.create(createInitializeRequest(order), options());
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Order has no line items");
+        }
+
+        String callbackUrl = properties.getCallbackUrl();
+        if (callbackUrl == null || callbackUrl.isBlank()) {
+            throw new IllegalArgumentException("Iyzico callback URL is missing");
+        }
+
+        BigDecimal paymentTotal = money(order.getTotalAmount());
+        if (paymentTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Order total must be positive");
+        }
+
+        CreateCheckoutFormInitializeRequest request = createInitializeRequest(order, paymentTotal);
+        assertBasketMatchesTotal(request, paymentTotal);
+        assertBuyerFieldsPresent(request);
+
+        CheckoutFormInitialize checkoutForm = CheckoutFormInitialize.create(request, options());
         boolean success = Status.SUCCESS.getValue().equals(checkoutForm.getStatus());
 
         return new CheckoutInitializeResult(
                 success,
                 checkoutForm.getToken(),
                 checkoutForm.getPaymentPageUrl(),
-                checkoutForm.getErrorMessage());
+                checkoutForm.getStatus(),
+                checkoutForm.getErrorCode(),
+                checkoutForm.getErrorMessage(),
+                checkoutForm.getConversationId(),
+                checkoutForm.getErrorGroup(),
+                null);
     }
 
     public CheckoutResult retrieveCheckoutResult(String token) {
@@ -64,12 +91,12 @@ public class IyzicoPaymentClient {
         return options;
     }
 
-    private CreateCheckoutFormInitializeRequest createInitializeRequest(Order order) {
+    private CreateCheckoutFormInitializeRequest createInitializeRequest(Order order, BigDecimal paymentTotal) {
         CreateCheckoutFormInitializeRequest request = new CreateCheckoutFormInitializeRequest();
         request.setLocale(Locale.TR.getValue());
         request.setConversationId(String.valueOf(order.getId()));
-        request.setPrice(order.getTotalAmount());
-        request.setPaidPrice(order.getTotalAmount());
+        request.setPrice(paymentTotal);
+        request.setPaidPrice(paymentTotal);
         request.setCurrency(Currency.TRY.name());
         request.setBasketId("ORDER-" + order.getId());
         request.setPaymentGroup(PaymentGroup.PRODUCT.name());
@@ -78,40 +105,178 @@ public class IyzicoPaymentClient {
 
         Buyer buyer = new Buyer();
         buyer.setId(String.valueOf(order.getUser().getId()));
-        buyer.setName(order.getUser().getFullName());
-        buyer.setSurname("User");
-        buyer.setEmail(order.getUser().getEmail());
-        buyer.setGsmNumber(order.getUser().getPhone());
+        buyer.setName(getBuyerFirstName(order));
+        buyer.setSurname(getBuyerSurname(order));
+        buyer.setEmail(getBuyerEmail(order));
+        buyer.setGsmNumber(normalizeBuyerGsm(order));
         buyer.setIdentityNumber("11111111111");
-        buyer.setRegistrationAddress(order.getShippingAddress());
+        buyer.setRegistrationAddress(getShippingAddress(order));
         buyer.setIp("127.0.0.1");
-        buyer.setCity("Istanbul");
-        buyer.setCountry("Turkey");
-        buyer.setZipCode("34000");
+        buyer.setCity(fallbackCity());
+        buyer.setCountry(fallbackCountry());
+        buyer.setZipCode(fallbackZip());
         request.setBuyer(buyer);
 
         Address address = new Address();
-        address.setContactName(order.getUser().getFullName());
-        address.setCity("Istanbul");
-        address.setCountry("Turkey");
-        address.setAddress(order.getShippingAddress());
-        address.setZipCode("34000");
+        address.setContactName(getBuyerFirstName(order) + " " + getBuyerSurname(order));
+        address.setCity(fallbackCity());
+        address.setCountry(fallbackCountry());
+        address.setAddress(getShippingAddress(order));
+        address.setZipCode(fallbackZip());
         request.setShippingAddress(address);
         request.setBillingAddress(address);
 
         List<BasketItem> basketItems = new ArrayList<>();
+        BigDecimal remainingTotal = paymentTotal;
+        int idx = 0;
         for (OrderItem item : order.getItems()) {
             BasketItem basketItem = new BasketItem();
             basketItem.setId(String.valueOf(item.getId()));
             basketItem.setName(item.getProductName());
             basketItem.setCategory1("Marketplace");
             basketItem.setItemType(BasketItemType.PHYSICAL.name());
-            basketItem.setPrice(item.getLineTotal());
+            BigDecimal itemPrice = calculateBasketItemPrice(item, order, paymentTotal, remainingTotal, idx);
+            basketItem.setPrice(itemPrice);
+            remainingTotal = remainingTotal.subtract(itemPrice);
             basketItems.add(basketItem);
+            idx++;
         }
         request.setBasketItems(basketItems);
 
         return request;
+    }
+
+    private void assertBasketMatchesTotal(CreateCheckoutFormInitializeRequest request, BigDecimal paymentTotal) {
+        BigDecimal basketSum = request.getBasketItems().stream()
+                .map(BasketItem::getPrice)
+                .map(this::money)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        basketSum = money(basketSum);
+        if (basketSum.compareTo(paymentTotal) != 0) {
+            throw new IllegalArgumentException("Basket item total does not match order total");
+        }
+    }
+
+    private void assertBuyerFieldsPresent(CreateCheckoutFormInitializeRequest request) {
+        Buyer b = request.getBuyer();
+        if (b == null) {
+            throw new IllegalArgumentException("Buyer is missing");
+        }
+        if (isBlank(b.getEmail()) || isBlank(b.getName()) || isBlank(b.getSurname()) || isBlank(b.getGsmNumber())) {
+            throw new IllegalArgumentException("Buyer contact fields are incomplete");
+        }
+        if (isBlank(b.getRegistrationAddress()) || isBlank(b.getCity()) || isBlank(b.getCountry()) || isBlank(b.getZipCode())) {
+            throw new IllegalArgumentException("Buyer address fields are incomplete");
+        }
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private String normalizeBuyerGsm(Order order) {
+        String raw = order.getUser().getPhone();
+        if (raw == null || raw.isBlank()) {
+            return "+905350000000";
+        }
+        String trimmed = raw.trim().replace(" ", "");
+        if (trimmed.startsWith("+")) {
+            return trimmed;
+        }
+        String digits = trimmed.replaceAll("\\D", "");
+        if (digits.length() == 12 && digits.startsWith("90")) {
+            return "+" + digits;
+        }
+        if (digits.length() == 11 && digits.startsWith("0")) {
+            return "+90" + digits.substring(1);
+        }
+        if (digits.length() == 10) {
+            return "+90" + digits;
+        }
+        return "+905350000000";
+    }
+
+    private String getBuyerEmail(Order order) {
+        String email = order.getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            return "guest@n11lite.local";
+        }
+        return email.trim();
+    }
+
+    private String getBuyerSurname(Order order) {
+        String fullName = order.getUser().getFullName();
+        if (fullName == null || fullName.isBlank()) {
+            return "User";
+        }
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length >= 2) {
+            return Arrays.stream(parts, 1, parts.length).collect(Collectors.joining(" "));
+        }
+        return "User";
+    }
+
+    private static String fallbackCity() {
+        return "Istanbul";
+    }
+
+    private static String fallbackCountry() {
+        return "Turkey";
+    }
+
+    private static String fallbackZip() {
+        return "34000";
+    }
+
+    private String getBuyerFirstName(Order order) {
+        String fullName = order.getUser().getFullName();
+        if (fullName == null || fullName.isBlank()) {
+            return "N11Lite";
+        }
+
+        return fullName.trim().split("\\s+")[0];
+    }
+
+    private String getShippingAddress(Order order) {
+        String shippingAddress = order.getShippingAddress();
+        if (shippingAddress == null || shippingAddress.isBlank()) {
+            return "N11Lite Demo Address";
+        }
+
+        return shippingAddress.trim();
+    }
+
+    private BigDecimal calculateBasketItemPrice(
+            OrderItem item,
+            Order order,
+            BigDecimal paymentTotal,
+            BigDecimal remainingTotal,
+            int itemIndex) {
+        int itemCount = order.getItems().size();
+        if (itemIndex == itemCount - 1) {
+            return money(remainingTotal);
+        }
+
+        BigDecimal originalTotal = order.getItems().stream()
+                .map(OrderItem::getLineTotal)
+                .map(this::money)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (originalTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return money(money(item.getLineTotal())
+                .multiply(paymentTotal)
+                .divide(originalTotal, 2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal money(BigDecimal value) {
+        if (value == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     public static class CheckoutInitializeResult {
@@ -119,13 +284,36 @@ public class IyzicoPaymentClient {
         private final boolean success;
         private final String token;
         private final String paymentPageUrl;
+        private final String status;
+        private final String errorCode;
         private final String errorMessage;
+        private final String conversationId;
+        private final String errorGroup;
+        private final Integer httpStatus;
 
         public CheckoutInitializeResult(boolean success, String token, String paymentPageUrl, String errorMessage) {
+            this(success, token, paymentPageUrl, null, null, errorMessage, null, null, null);
+        }
+
+        public CheckoutInitializeResult(
+                boolean success,
+                String token,
+                String paymentPageUrl,
+                String status,
+                String errorCode,
+                String errorMessage,
+                String conversationId,
+                String errorGroup,
+                Integer httpStatus) {
             this.success = success;
             this.token = token;
             this.paymentPageUrl = paymentPageUrl;
+            this.status = status;
+            this.errorCode = errorCode;
             this.errorMessage = errorMessage;
+            this.conversationId = conversationId;
+            this.errorGroup = errorGroup;
+            this.httpStatus = httpStatus;
         }
 
         public boolean isSuccess() {
@@ -140,8 +328,28 @@ public class IyzicoPaymentClient {
             return paymentPageUrl;
         }
 
+        public String getStatus() {
+            return status;
+        }
+
+        public String getErrorCode() {
+            return errorCode;
+        }
+
         public String getErrorMessage() {
             return errorMessage;
+        }
+
+        public String getConversationId() {
+            return conversationId;
+        }
+
+        public String getErrorGroup() {
+            return errorGroup;
+        }
+
+        public Integer getHttpStatus() {
+            return httpStatus;
         }
     }
 

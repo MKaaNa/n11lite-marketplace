@@ -13,14 +13,14 @@ public class IyzicoProperties {
     private String callbackUrl;
 
     public boolean isConfigured() {
-        return apiKey != null && !apiKey.isBlank()
-                && secretKey != null && !secretKey.isBlank()
-                && baseUrl != null && !baseUrl.isBlank()
-                && callbackUrl != null && !callbackUrl.isBlank();
+        return getApiKey() != null && !getApiKey().isBlank()
+                && getSecretKey() != null && !getSecretKey().isBlank()
+                && getBaseUrl() != null && !getBaseUrl().isBlank()
+                && getCallbackUrl() != null && !getCallbackUrl().isBlank();
     }
 
     public String getApiKey() {
-        return apiKey;
+        return trim(apiKey);
     }
 
     public void setApiKey(String apiKey) {
@@ -28,7 +28,7 @@ public class IyzicoProperties {
     }
 
     public String getSecretKey() {
-        return secretKey;
+        return trim(secretKey);
     }
 
     public void setSecretKey(String secretKey) {
@@ -36,7 +36,7 @@ public class IyzicoProperties {
     }
 
     public String getBaseUrl() {
-        return baseUrl;
+        return stripTrailingSlash(trim(baseUrl));
     }
 
     public void setBaseUrl(String baseUrl) {
@@ -44,10 +44,25 @@ public class IyzicoProperties {
     }
 
     public String getCallbackUrl() {
-        return callbackUrl;
+        return trim(callbackUrl);
     }
 
     public void setCallbackUrl(String callbackUrl) {
         this.callbackUrl = callbackUrl;
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String stripTrailingSlash(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        String result = value;
+        while (result.endsWith("/")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
     }
 }
