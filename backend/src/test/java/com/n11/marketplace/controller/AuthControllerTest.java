@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.n11.marketplace.dto.request.LoginRequest;
 import com.n11.marketplace.dto.request.RegisterRequest;
+import com.n11.marketplace.dto.request.ResendLoginVerificationRequest;
 import com.n11.marketplace.dto.request.VerifyLoginRequest;
 import com.n11.marketplace.dto.response.JwtResponse;
 import com.n11.marketplace.dto.response.MessageResponse;
@@ -82,6 +83,20 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.token").value("jwt-token"))
                 .andExpect(jsonPath("$.user.email").value("user@example.com"))
                 .andExpect(jsonPath("$.user.role").value("USER"));
+    }
+
+    @Test
+    void resendLoginVerificationShouldReturnVerificationResponse() throws Exception {
+        ResendLoginVerificationRequest request = new ResendLoginVerificationRequest(1L);
+        when(authService.resendLoginVerification(1L))
+                .thenReturn(new VerificationInitResponse(2L, "Verification code sent"));
+
+        mockMvc.perform(post("/api/auth/resend-login-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificationId").value(2))
+                .andExpect(jsonPath("$.message").value("Verification code sent"));
     }
 
     @Test

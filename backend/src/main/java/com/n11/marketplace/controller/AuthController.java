@@ -2,6 +2,7 @@ package com.n11.marketplace.controller;
 
 import com.n11.marketplace.dto.request.LoginRequest;
 import com.n11.marketplace.dto.request.RegisterRequest;
+import com.n11.marketplace.dto.request.ResendLoginVerificationRequest;
 import com.n11.marketplace.dto.request.VerifyLoginRequest;
 import com.n11.marketplace.dto.response.JwtResponse;
 import com.n11.marketplace.dto.response.MessageResponse;
@@ -46,6 +47,13 @@ public class AuthController {
     @Operation(summary = "Verify login code")
     public ResponseEntity<JwtResponse> verifyLogin(@Valid @RequestBody VerifyLoginRequest request) {
         return ResponseEntity.ok(authService.verifyLoginCode(request));
+    }
+
+    @PostMapping("/resend-login-verification")
+    @Operation(summary = "Resend login verification code")
+    public ResponseEntity<VerificationInitResponse> resendLoginVerification(
+            @Valid @RequestBody ResendLoginVerificationRequest request) {
+        return ResponseEntity.ok(authService.resendLoginVerification(request.getVerificationId()));
     }
 
     @GetMapping("/me")
