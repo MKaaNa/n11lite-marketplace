@@ -1,6 +1,7 @@
 package com.n11.marketplace.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +27,7 @@ import com.n11.marketplace.repository.LoginVerificationCodeRepository;
 import com.n11.marketplace.repository.UserRepository;
 import com.n11.marketplace.security.JwtUtil;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -245,6 +248,61 @@ class AuthServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(loginVerificationCodeRepository, never()).save(any(LoginVerificationCode.class));
+    }
+
+    @Test
+    void resendLoginVerificationShouldInvalidatePreviousAndSendNewCode() {
+        LoginVerificationCode previous = new LoginVerificationCode(
+                "user@example.com",
+                "111111",
+                LocalDateTime.now().plusMinutes(1));
+        when(loginVerificationCodeRepository.findById(10L)).thenReturn(Optional.of(previous));
+        User user = new User("user@example.com", "encoded-password", "Test User", null, Role.USER);
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(loginVerificationCodeRepository.save(any(LoginVerificationCode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.resendLoginVerification(10L);
+
+        assertTrue(previous.isUsed());
+        ArgumentCaptor<LoginVerificationCode> captor = ArgumentCaptor.forClass(LoginVerificationCode.class);
+        verify(loginVerificationCodeRepository, times(2)).save(captor.capture());
+        List<LoginVerificationCode> saved = captor.getAllValues();
+        assertEquals(2, saved.size());
+        assertTrue(saved.get(0).isUsed());
+        LoginVerificationCode fresh = saved.get(1);
+        assertEquals("user@example.com", fresh.getEmail());
+        assertFalse(fresh.isUsed());
+        verify(emailService).sendVerificationCodeEmail(eq("user@example.com"), matches("\\d{6}"));
+    }
+
+    @Test
+    void resendLoginVerificationShouldThrowWhenVerificationMissing() {
+        when(loginVerificationCodeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> authService.resendLoginVerification(99L));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(loginVerificationCodeRepository, never()).save(any(LoginVerificationCode.class));
+        verify(emailService, never()).sendVerificationCodeEmail(any(), any());
+    }
+
+    @Test
+    void resendLoginVerificationShouldThrowWhenAlreadyUsed() {
+        LoginVerificationCode previous = new LoginVerificationCode(
+                "user@example.com",
+                "111111",
+                LocalDateTime.now().plusMinutes(1));
+        previous.setUsed(true);
+        when(loginVerificationCodeRepository.findById(10L)).thenReturn(Optional.of(previous));
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> authService.resendLoginVerification(10L));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(loginVerificationCodeRepository, never()).save(any(LoginVerificationCode.class));
+        verify(emailService, never()).sendVerificationCodeEmail(any(), any());
     }
 
     @Test

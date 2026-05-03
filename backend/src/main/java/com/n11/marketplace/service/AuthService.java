@@ -29,6 +29,7 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final int CODE_BOUND = 1_000_000;
+    private static final int LOGIN_CODE_VALIDITY_MINUTES = 2;
 
     private final UserRepository userRepository;
     private final LoginVerificationCodeRepository loginVerificationCodeRepository;
@@ -86,13 +87,44 @@ public class AuthService {
         LoginVerificationCode verificationCode = new LoginVerificationCode(
                 user.getEmail(),
                 code,
-                LocalDateTime.now().plusMinutes(5));
+                LocalDateTime.now().plusMinutes(LOGIN_CODE_VALIDITY_MINUTES));
 
         LoginVerificationCode savedVerificationCode = loginVerificationCodeRepository.save(verificationCode);
         emailService.sendVerificationCodeEmail(user.getEmail(), code);
         log.info("Login verification code sent for {}", user.getEmail());
 
         return new VerificationInitResponse(savedVerificationCode.getId(), "Verification code sent");
+    }
+
+    @Transactional
+    public VerificationInitResponse resendLoginVerification(Long verificationId) {
+        LoginVerificationCode previous = loginVerificationCodeRepository
+                .findById(verificationId)
+                .orElseThrow(() -> new BusinessException("Invalid verification", HttpStatus.BAD_REQUEST));
+
+        if (previous.isUsed()) {
+            throw new BusinessException("Verification code already used", HttpStatus.BAD_REQUEST);
+        }
+
+        String email = previous.getEmail();
+        userRepository
+                .findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+
+        previous.setUsed(true);
+        loginVerificationCodeRepository.save(previous);
+
+        String code = generateVerificationCode();
+        LoginVerificationCode next = new LoginVerificationCode(
+                email,
+                code,
+                LocalDateTime.now().plusMinutes(LOGIN_CODE_VALIDITY_MINUTES));
+
+        LoginVerificationCode saved = loginVerificationCodeRepository.save(next);
+        emailService.sendVerificationCodeEmail(email, code);
+        log.info("Login verification code resent for {}", email);
+
+        return new VerificationInitResponse(saved.getId(), "Verification code sent");
     }
 
     @Transactional

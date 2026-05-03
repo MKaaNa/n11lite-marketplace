@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/verify-login",
+                                "/api/auth/resend-login-verification",
                                 "/api/payments/iyzico/callback",
                                 "/api/recommendations",
                                 "/api/recommendations/**",
