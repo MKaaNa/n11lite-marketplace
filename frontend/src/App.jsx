@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import VerifyLoginPage from './pages/VerifyLoginPage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import AdminOrdersPage from './pages/AdminOrdersPage.jsx';
+import StoreReviewsPage from './pages/StoreReviewsPage.jsx';
 
 export default function App() {
   return (
@@ -16,6 +17,8 @@ export default function App() {
       <AppHeader />
       <Routes>
         <Route path="/" element={<ProductListPage />} />
+        <Route path="/products" element={<ProductListPage />} />
+        <Route path="/stores/:storeId" element={<StoreReviewsPage />} />
         <Route path="/products/:slug" element={<ProductDetailPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
