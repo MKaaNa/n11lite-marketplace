@@ -16,6 +16,7 @@ export default function AccountCardsPage() {
     expireMonth: '',
     expireYear: '',
   });
+  const [editingCardToken, setEditingCardToken] = useState(null);
 
   useEffect(() => {
     loadCards();
@@ -39,13 +40,17 @@ export default function AccountCardsPage() {
     setSaving(true);
     setError('');
     try {
-      await registerPaymentCard({
+      const payload = {
         cardAlias: form.cardAlias.trim(),
         cardHolderName: form.cardHolderName.trim(),
         cardNumber: form.cardNumber.replace(/\s/g, ''),
         expireMonth: form.expireMonth.padStart(2, '0'),
         expireYear: form.expireYear.length === 2 ? `20${form.expireYear}` : form.expireYear,
-      });
+      };
+      await registerPaymentCard(payload);
+      if (editingCardToken) {
+        await deletePaymentCard(editingCardToken);
+      }
       setForm({
         cardAlias: '',
         cardHolderName: '',
@@ -53,10 +58,11 @@ export default function AccountCardsPage() {
         expireMonth: '',
         expireYear: '',
       });
-      showToast('Kart kaydedildi.', 'success');
+      setEditingCardToken(null);
+      showToast(editingCardToken ? 'Kart güncellendi.' : 'Kart kaydedildi.', 'success');
       await loadCards();
     } catch (err) {
-      setError(err.response?.data?.message || 'Kart kaydedilemedi.');
+      setError(err.response?.data?.message || (editingCardToken ? 'Kart güncellenemedi.' : 'Kart kaydedilemedi.'));
     } finally {
       setSaving(false);
     }
@@ -74,6 +80,31 @@ export default function AccountCardsPage() {
     } catch (err) {
       setError(err.response?.data?.message || 'Kart silinemedi.');
     }
+  }
+
+  function handleStartEdit(card) {
+    setEditingCardToken(card.cardToken);
+    setForm((current) => ({
+      ...current,
+      cardAlias: card.cardAlias || '',
+      cardHolderName: '',
+      cardNumber: '',
+      expireMonth: '',
+      expireYear: '',
+    }));
+    setError('');
+  }
+
+  function handleCancelEdit() {
+    setEditingCardToken(null);
+    setForm({
+      cardAlias: '',
+      cardHolderName: '',
+      cardNumber: '',
+      expireMonth: '',
+      expireYear: '',
+    });
+    setError('');
   }
 
   return (
@@ -112,6 +143,7 @@ export default function AccountCardsPage() {
                 </p>
               </div>
               <div className="account-item-actions">
+                <button type="button" onClick={() => handleStartEdit(card)}>Düzenle</button>
                 <button type="button" onClick={() => handleDelete(card.cardToken)}>Sil</button>
               </div>
             </article>
@@ -119,8 +151,13 @@ export default function AccountCardsPage() {
         </div>
 
         <aside className="account-form-panel">
-          <h2>Yeni Kart Ekle</h2>
+          <h2>{editingCardToken ? 'Kartı Düzenle' : 'Yeni Kart Ekle'}</h2>
           <form className="account-form" onSubmit={handleRegisterCard}>
+            {editingCardToken && (
+              <p className="checkout-note subtle">
+                Güvenlik nedeniyle kart düzenleme, yeni kart bilgisi ile tekrar kayıt + eski kartı silme olarak uygulanır.
+              </p>
+            )}
             <label>
               Kart adı
               <input
@@ -162,8 +199,13 @@ export default function AccountCardsPage() {
               </label>
             </div>
             <button type="submit" className="primary-button" disabled={saving}>
-              {saving ? 'Kaydediliyor...' : 'Kartı Kaydet'}
+              {saving ? 'Kaydediliyor...' : editingCardToken ? 'Kartı Güncelle' : 'Kartı Kaydet'}
             </button>
+            {editingCardToken && (
+              <button type="button" onClick={handleCancelEdit} disabled={saving}>
+                İptal
+              </button>
+            )}
           </form>
         </aside>
       </section>
