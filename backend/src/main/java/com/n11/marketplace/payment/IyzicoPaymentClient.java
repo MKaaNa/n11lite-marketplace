@@ -37,6 +37,7 @@ import org.springframework.stereotype.Component;
 public class IyzicoPaymentClient {
 
     private static final String IYZICO_EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    private static final BigDecimal INSTALLMENT_THRESHOLD = new BigDecimal("5000.00");
 
     private final IyzicoProperties properties;
 
@@ -112,7 +113,7 @@ public class IyzicoPaymentClient {
         request.setBasketId("ORDER-" + order.getId());
         request.setPaymentGroup(PaymentGroup.PRODUCT.name());
         request.setCallbackUrl(properties.getCallbackUrl());
-        request.setEnabledInstallments(List.of(1));
+        request.setEnabledInstallments(resolveInstallments(paymentTotal));
 
         String cardUserKey = order.getUser().getIyzicoCardUserKey();
         if (cardUserKey != null && !cardUserKey.isBlank()) {
@@ -381,6 +382,13 @@ public class IyzicoPaymentClient {
         }
 
         return value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private List<Integer> resolveInstallments(BigDecimal paymentTotal) {
+        if (paymentTotal != null && paymentTotal.compareTo(INSTALLMENT_THRESHOLD) >= 0) {
+            return List.of(1, 2, 3);
+        }
+        return List.of(1);
     }
 
     public static class CheckoutInitializeResult {
