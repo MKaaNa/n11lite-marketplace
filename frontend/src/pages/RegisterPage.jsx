@@ -47,11 +47,18 @@ export default function RegisterPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
+        <span className="auth-brand">N11Lite</span>
         <p className="eyebrow">Hesap oluştur</p>
         <h1>Kayıt Ol</h1>
+        <img
+          className="auth-illustration"
+          src="/assets/brand/illus-auth.png"
+          alt=""
+          decoding="async"
+        />
 
-        {error && <div className="state-message error-message">{error}</div>}
-        {message && <div className="state-message success-message">{message}</div>}
+        {error && <div className="alert alert--error">{error}</div>}
+        {message && <div className="alert alert--success">{message}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>

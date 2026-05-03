@@ -45,12 +45,19 @@ export default function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-panel">
+        <span className="auth-brand">N11Lite</span>
         <p className="eyebrow">Tekrar hoş geldiniz</p>
         <h1>Giriş Yap</h1>
+        <img
+          className="auth-illustration"
+          src="/assets/brand/illus-auth.png"
+          alt=""
+          decoding="async"
+        />
 
-        {error && <div className="state-message error-message">{error}</div>}
+        {error && <div className="alert alert--error">{error}</div>}
         {location.state?.message && (
-          <div className="state-message">{location.state.message}</div>
+          <div className="alert alert--info">{location.state.message}</div>
         )}
 
         <form className="auth-form" onSubmit={handleSubmit}>

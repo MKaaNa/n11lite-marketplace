@@ -15,6 +15,29 @@ function formatPrice(price) {
   }).format(price);
 }
 
+const BADGE_LABELS = {
+  NEW: 'Yeni',
+  BESTSELLER: 'Çok Satan',
+  FEATURED: 'Öne Çıkan',
+  DISCOUNTED: 'İndirimli',
+  FREE_SHIPPING: 'Ücretsiz Kargo',
+};
+
+function formatBadge(badge) {
+  return BADGE_LABELS[badge] || badge;
+}
+
+function getPriceModel(product) {
+  const isDiscounted = product.badge === 'DISCOUNTED';
+  if (!isDiscounted) {
+    return { isDiscounted: false, currentPrice: product.price, originalPrice: null, discountRate: null };
+  }
+
+  const discountRate = 20;
+  const originalPrice = Number((product.price / (1 - discountRate / 100)).toFixed(2));
+  return { isDiscounted: true, currentPrice: product.price, originalPrice, discountRate };
+}
+
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -35,6 +58,7 @@ export default function ProductDetailPage() {
   const [reviewError, setReviewError] = useState('');
 
   const [recommendations, setRecommendations] = useState([]);
+  const [mainImageError, setMainImageError] = useState(false);
 
   useEffect(() => {
     async function loadProduct() {
@@ -48,6 +72,7 @@ export default function ProductDetailPage() {
 
         setProduct(productData);
         setSelectedImage(firstImage);
+        setMainImageError(false);
         setQuantity(1);
 
         const sessionId = getOrCreateSessionId();
@@ -90,7 +115,7 @@ export default function ProductDetailPage() {
     });
   }
 
-  async function handleAddToCart() {
+  async function addSelectedProductToCart({ goToCart = false } = {}) {
     setCartMessage('');
     setError('');
 
@@ -106,12 +131,26 @@ export default function ProductDetailPage() {
     try {
       setCartLoading(true);
       await addToCart(product.id, quantity);
+      if (goToCart) {
+        navigate('/cart');
+        return;
+      }
       setCartMessage('Ürün sepete eklendi.');
     } catch {
-      setError('Ürün sepete eklenemedi.');
+      setError(goToCart
+        ? 'Satın alma adımı başlatılamadı. Lütfen tekrar dene.'
+        : 'Ürün sepete eklenemedi.');
     } finally {
       setCartLoading(false);
     }
+  }
+
+  function handleAddToCart() {
+    addSelectedProductToCart();
+  }
+
+  function handleBuyNow() {
+    addSelectedProductToCart({ goToCart: true });
   }
 
   async function handleReviewSubmit(e) {
@@ -139,24 +178,44 @@ export default function ProductDetailPage() {
   const images = product?.images?.length ? product.images : [
     { id: 'fallback', imageUrl: FALLBACK_IMAGE, displayOrder: 1 },
   ];
+  const priceModel = product ? getPriceModel(product) : null;
 
   return (
     <main className="catalog-page">
-      <Link className="back-link" to="/">
+      <Link className="back-link" to="/products">
         Ürünlere dön
       </Link>
 
-      {loading && <div className="state-message">Ürün yükleniyor...</div>}
-      {error && <div className="state-message error-message">{error}</div>}
-      {cartMessage && <div className="state-message success-message">{cartMessage}</div>}
+      {loading && <div className="alert alert--loading">Ürün yükleniyor...</div>}
+      {error && <div className="alert alert--error">{error}</div>}
+      {cartMessage && (
+        <div className="cart-success-panel">
+          <p>{cartMessage}</p>
+          <div className="cart-success-actions">
+            <Link className="primary-button" to="/cart">Sepete Git</Link>
+            <button type="button" onClick={() => setCartMessage('')}>
+              Alışverişe Devam Et
+            </button>
+          </div>
+        </div>
+      )}
 
       {!loading && !error && product && (
         <>
           <section className="product-detail">
             <div className="gallery">
               <div className="main-image-wrap">
-                {product.badge && <span className="product-badge">{product.badge}</span>}
-                <img src={selectedImage} alt={product.name} className="main-image" />
+                {product.badge && (
+                <span className={`product-badge product-badge--${product.badge.toLowerCase()}`}>
+                  {formatBadge(product.badge)}
+                </span>
+              )}
+                <img
+                  src={mainImageError ? FALLBACK_IMAGE : selectedImage}
+                  alt={product.name}
+                  className="main-image"
+                  onError={() => setMainImageError(true)}
+                />
               </div>
 
               <div className="thumbnail-list">
@@ -165,9 +224,18 @@ export default function ProductDetailPage() {
                     type="button"
                     key={image.id}
                     className={selectedImage === image.imageUrl ? 'thumbnail active' : 'thumbnail'}
-                    onClick={() => setSelectedImage(image.imageUrl)}
+                    onClick={() => {
+                      setSelectedImage(image.imageUrl);
+                      setMainImageError(false);
+                    }}
                   >
-                    <img src={image.imageUrl} alt={`${product.name} ${image.displayOrder}`} />
+                    <img
+                      src={image.imageUrl}
+                      alt={`${product.name} ${image.displayOrder}`}
+                      onError={(event) => {
+                        event.currentTarget.src = FALLBACK_IMAGE;
+                      }}
+                    />
                   </button>
                 ))}
               </div>
@@ -176,7 +244,15 @@ export default function ProductDetailPage() {
             <div className="detail-info">
               <p className="product-category">{product.category?.name}</p>
               <h1>{product.name}</h1>
-              <p className="detail-price">{formatPrice(product.price)}</p>
+              <div className="detail-price-box">
+                {priceModel?.isDiscounted && (
+                  <p className="detail-price-old">{formatPrice(priceModel.originalPrice)}</p>
+                )}
+                <p className="detail-price">{formatPrice(priceModel?.currentPrice || product.price)}</p>
+                {priceModel?.isDiscounted && (
+                  <p className="detail-discount-note">%{priceModel.discountRate} indirim fırsatı</p>
+                )}
+              </div>
               <p className="detail-description">{product.description}</p>
 
               <div className="detail-meta">
@@ -207,16 +283,44 @@ export default function ProductDetailPage() {
                 >
                   {cartLoading ? 'Ekleniyor...' : 'Sepete Ekle'}
                 </button>
+                <button
+                  type="button"
+                  className="buy-now-button"
+                  onClick={handleBuyNow}
+                  disabled={cartLoading || product.stock <= 0}
+                >
+                  {cartLoading ? 'Hazırlanıyor...' : 'Hemen Satın Al'}
+                </button>
               </div>
 
-              <div className="store-panel">
-                <p className="store-label">Mağaza</p>
-                <p className="store-name">
-                  {product.store?.name}
-                  {product.store?.official && <span className="official-store">Resmi Mağaza</span>}
-                </p>
-                {product.store?.rating && <p className="store-rating">Puan: {product.store.rating}</p>}
-              </div>
+              {product.store?.id ? (
+                <Link
+                  className="store-panel store-panel--link"
+                  to={`/stores/${product.store.id}`}
+                  aria-label={`${product.store.name} mağaza yorumları ve puanlar`}
+                >
+                  <p className="store-label">Mağaza</p>
+                  <p className="store-name">
+                    {product.store.name}
+                    {product.store.official && <span className="official-store">Resmi Mağaza</span>}
+                  </p>
+                  {product.store.rating != null && (
+                    <p className="store-rating">Puan: {product.store.rating}</p>
+                  )}
+                  <p className="store-panel-hint">Yorumları görmek için tıkla</p>
+                </Link>
+              ) : (
+                <div className="store-panel">
+                  <p className="store-label">Mağaza</p>
+                  <p className="store-name">
+                    {product.store?.name}
+                    {product.store?.official && <span className="official-store">Resmi Mağaza</span>}
+                  </p>
+                  {product.store?.rating != null && (
+                    <p className="store-rating">Puan: {product.store.rating}</p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -233,7 +337,15 @@ export default function ProductDetailPage() {
             )}
 
             {reviewSummary && reviewSummary.reviewCount === 0 && (
-              <p className="state-message">Henüz yorum yapılmamış.</p>
+              <div className="reviews-empty-row">
+                <img
+                  className="empty-state-visual empty-state-visual--compact"
+                  src="/assets/brand/illus-empty.png"
+                  alt=""
+                  decoding="async"
+                />
+                <p className="state-message reviews-empty-message">Henüz yorum yapılmamış.</p>
+              </div>
             )}
 
             {reviewSummary && reviewSummary.reviews.map((review) => (
@@ -251,8 +363,8 @@ export default function ProductDetailPage() {
                 <form onSubmit={handleReviewSubmit} className="review-form">
                   <h3>Yorum Yap</h3>
 
-                  {reviewMessage && <p className="state-message success-message">{reviewMessage}</p>}
-                  {reviewError && <p className="state-message error-message">{reviewError}</p>}
+                  {reviewMessage && <p className="alert alert--success">{reviewMessage}</p>}
+                  {reviewError && <p className="alert alert--error">{reviewError}</p>}
 
                   <label htmlFor="review-rating">
                     Puan
@@ -285,7 +397,7 @@ export default function ProductDetailPage() {
                   </button>
                 </form>
               ) : (
-                <p className="state-message">
+                <p className="alert alert--info">
                   Yorum yapmak için giriş yapmalısın.
                 </p>
               )}
@@ -302,10 +414,15 @@ export default function ProductDetailPage() {
                       src={rec.imageUrl || FALLBACK_IMAGE}
                       alt={rec.name}
                       className="recommendation-image"
+                      onError={(event) => {
+                        event.currentTarget.src = FALLBACK_IMAGE;
+                      }}
                     />
-                    <p className="recommendation-name">{rec.name}</p>
-                    <p className="recommendation-price">{formatPrice(rec.price)}</p>
-                    <p className="recommendation-category">{rec.categoryName}</p>
+                    <div className="recommendation-body">
+                      <p className="recommendation-name">{rec.name}</p>
+                      <p className="recommendation-price">{formatPrice(rec.price)}</p>
+                      <p className="recommendation-category">{rec.categoryName}</p>
+                    </div>
                   </Link>
                 ))}
               </div>

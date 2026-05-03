@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getAdminOrders, updateOrderStatus } from '../api/adminApi';
 
 const STATUS_LABELS = {
@@ -51,6 +51,18 @@ export default function AdminOrdersPage() {
     }
   }
 
+  const orderStats = useMemo(() => {
+    if (!orders.length) {
+      return null;
+    }
+    return {
+      total: orders.length,
+      inProgress: orders.filter((o) => o.status === 'PAYMENT_PENDING' || o.status === 'PAID').length,
+      shipped: orders.filter((o) => o.status === 'SHIPPED').length,
+      delivered: orders.filter((o) => o.status === 'DELIVERED').length,
+    };
+  }, [orders]);
+
   async function handleStatusUpdate(orderId, status) {
     setUpdating(orderId);
     setError('');
@@ -65,19 +77,59 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <main className="catalog-page">
-      <section className="cart-header">
-        <div>
-          <p className="eyebrow">Yönetim Paneli</p>
-          <h1>Tüm Siparişler</h1>
+    <main className="admin-page">
+      <header className="admin-page-header">
+        <div className="admin-header-top">
+          <div>
+            <p className="eyebrow">Yönetim Paneli</p>
+            <h1>Tüm Siparişler</h1>
+          </div>
+          <img
+            className="admin-hero-icon"
+            src="/assets/brand/adm-orders.png"
+            alt=""
+            decoding="async"
+          />
         </div>
-      </section>
+        {!loading && orderStats && (
+          <div className="admin-stats-grid">
+            <div className="admin-stat-card">
+              <img className="admin-stat-icon" src="/assets/brand/adm-orders.png" alt="" decoding="async" />
+              <div>
+                <span className="admin-stat-value">{orderStats.total}</span>
+                <span className="admin-stat-label">Toplam</span>
+              </div>
+            </div>
+            <div className="admin-stat-card">
+              <img className="admin-stat-icon" src="/assets/brand/adm-process.png" alt="" decoding="async" />
+              <div>
+                <span className="admin-stat-value">{orderStats.inProgress}</span>
+                <span className="admin-stat-label">İşlemde</span>
+              </div>
+            </div>
+            <div className="admin-stat-card">
+              <img className="admin-stat-icon" src="/assets/brand/adm-ship.png" alt="" decoding="async" />
+              <div>
+                <span className="admin-stat-value">{orderStats.shipped}</span>
+                <span className="admin-stat-label">Kargoda</span>
+              </div>
+            </div>
+            <div className="admin-stat-card">
+              <img className="admin-stat-icon" src="/assets/brand/adm-done.png" alt="" decoding="async" />
+              <div>
+                <span className="admin-stat-value">{orderStats.delivered}</span>
+                <span className="admin-stat-label">Teslim</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
 
-      {loading && <div className="state-message">Siparişler yükleniyor...</div>}
-      {error && <div className="state-message error-message">{error}</div>}
+      {loading && <div className="alert alert--loading">Siparişler yükleniyor...</div>}
+      {error && <div className="alert alert--error">{error}</div>}
 
       {!loading && orders.length === 0 && (
-        <div className="state-message">Henüz sipariş yok.</div>
+        <div className="alert alert--info">Henüz sipariş yok.</div>
       )}
 
       {!loading && orders.length > 0 && (
@@ -101,8 +153,20 @@ export default function AdminOrdersPage() {
                 <tr key={order.id}>
                   <td>{order.id}</td>
                   <td>{order.userEmail}</td>
-                  <td>{STATUS_LABELS[order.status] || order.status}</td>
-                  <td>{order.paymentStatus}</td>
+                  <td>
+                    <span className={`order-status-badge order-status-badge--${order.status.toLowerCase()}`}>
+                      {STATUS_LABELS[order.status] || order.status}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`pay-status-badge pay-status-badge--${
+                      order.paymentStatus === 'SUCCESS' ? 'success'
+                      : order.paymentStatus === 'FAILED' ? 'failed'
+                      : 'pending'
+                    }`}>
+                      {order.paymentStatus}
+                    </span>
+                  </td>
                   <td>{formatPrice(order.totalAmount)}</td>
                   <td>{order.couponCode || '-'}</td>
                   <td>
