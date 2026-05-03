@@ -27,7 +27,7 @@ export default function AccountCardsPage() {
     setError('');
     try {
       const response = await listPaymentCards();
-      setCards(response.data || []);
+      setCards(Array.isArray(response.data) ? response.data : []);
     } catch {
       setError('Kartlar yüklenemedi.');
     } finally {
