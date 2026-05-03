@@ -3,6 +3,7 @@ package com.n11.marketplace.controller;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -81,9 +82,10 @@ class PaymentControllerTest {
 
         mockMvc.perform(post("/api/payments/iyzico/callback").param("token", "checkout-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(50))
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.orderStatus").value("PAID"));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Ödeme başarılı")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Sipariş No")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("#50")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Ödendi")));
     }
 
     @Test

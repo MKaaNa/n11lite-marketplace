@@ -65,9 +65,29 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.PENDING);
         payment.setPrice(order.getTotalAmount());
 
-        IyzicoPaymentClient.CheckoutInitializeResult result = iyzicoPaymentClient.initializeCheckout(order);
+        IyzicoPaymentClient.CheckoutInitializeResult result;
+        try {
+            result = iyzicoPaymentClient.initializeCheckout(order);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Iyzico checkout validation failed orderId={} reason={}", order.getId(), ex.getMessage());
+            throw new BusinessException(
+                    "Ödeme bilgileri eksik veya geçersiz. Lütfen siparişini kontrol edip tekrar dene.",
+                    HttpStatus.BAD_REQUEST);
+        }
+
         if (!result.isSuccess()) {
-            throw new BusinessException("Payment could not be started", HttpStatus.BAD_REQUEST);
+            log.warn(
+                    "Iyzico checkout initialize failed orderId={} httpStatus={} providerStatus={} errorCode={} errorMessage={} conversationId={} errorGroup={}",
+                    order.getId(),
+                    result.getHttpStatus(),
+                    result.getStatus(),
+                    result.getErrorCode(),
+                    result.getErrorMessage(),
+                    result.getConversationId(),
+                    result.getErrorGroup());
+            throw new BusinessException(
+                    "Ödeme şu an başlatılamıyor. Lütfen bir süre sonra tekrar dene.",
+                    HttpStatus.BAD_REQUEST);
         }
 
         payment.setIyzicoToken(result.getToken());
