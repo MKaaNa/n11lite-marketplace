@@ -6,4 +6,6 @@ backend/.m2/
 .vscode/
 *.log
 .env
+.env.*
+!.env.example
 
